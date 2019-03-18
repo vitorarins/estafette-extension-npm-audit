@@ -1,0 +1,94 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: estafette-extension-npm-audit
+  team: estafette-team
+  language: golang
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  build:
+    image: golang:1.12.0-alpine3.9
+    workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+      GOFLAGS: -mod=vendor
+    commands:
+    - go test ./...
+    - go build -a -installsuffix cgo -o ./publish/${ESTAFETTE_LABEL_APP} .
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
+  bake:
+    image: extensions/docker:stable
+    action: build
+    repositories:
+    - eu.gcr.io/travix-com
+    path: ./publish
+    copy:
+    - /etc/ssl/certs/ca-certificates.crt
+
+  # test the container before pushing it
+  integration-test:
+    image: eu.gcr.io/travix-com/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+
+  push-to-docker-registry:
+    image: extensions/docker:stable
+    action: push
+    repositories:
+    - eu.gcr.io/travix-com
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: travix
+    channels:
+    - '#builds-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'failed'
+
+# https://estafette.io/usage/manifest/#releases
+releases:
+  beta:
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - eu.gcr.io/travix-com
+        tags:
+        - beta
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  stable:
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - eu.gcr.io/travix-com
+        tags:
+        - stable
+        - latest
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
