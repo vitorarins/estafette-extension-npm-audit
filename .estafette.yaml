@@ -33,10 +33,6 @@ stages:
     copy:
     - /etc/ssl/certs/ca-certificates.crt
 
-  # test the container before pushing it
-  integration-test:
-    image: eu.gcr.io/travix-com/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
-
   push-to-docker-registry:
     image: extensions/docker:stable
     action: push
