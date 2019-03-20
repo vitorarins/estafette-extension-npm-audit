@@ -37,6 +37,15 @@ func main() {
 	// log startup message
 	log.Printf("Starting estafette-extension-npm-audit version %v...", version)
 
+	prodVulnLevel, err := VulnLevel(*level)
+	if err != nil {
+		log.Println(err)
+	}
+
+	devVulnLevel, err := VulnLevel(*level)
+	if err != nil {
+		log.Println(err)
+	}
 	var outputString string
 	var auditReport AuditReportBody
 	switch *action {
@@ -57,11 +66,20 @@ func main() {
 		outputString = runCommandGetOutput("npm", auditArgs)
 		auditReport = readAuditReport(outputString)
 
-		// for id, advisory := range auditReport.Advisories {
-		// 	for _, finding := range advisory.Findings {
-
-		// 	}
-		// }
+		failBuild := false
+		for _, advisory := range auditReport.Advisories {
+			severity := advisory.Severity
+			for _, finding := range advisory.Findings {
+				if finding.Dev {
+					failBuild = IsCheckEnabled(prodVulnLevel, severity)
+				} else {
+					failBuild = IsCheckEnabled(devVulnLevel, severity)
+				}
+			}
+		}
+		if failBuild {
+			log.Fatal("Your repository has vulnerabilities.")
+		}
 		log.Printf("%v", auditReport)
 	default:
 		log.Fatal("Set `action: <action>` on this step to audit.")

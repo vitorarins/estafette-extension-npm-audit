@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"strings"
 )
 
@@ -38,6 +39,10 @@ func VulnLevel(level string) (Level, error) {
 	return Low, ErrInvalidVulnLevel
 }
 
-// func isEnabled(level Level, module string) bool {
-// 	return level <= l.GetLevel(module)
-// }
+func IsCheckEnabled(level Level, levelString string) bool {
+	checkLevel, err := VulnLevel(levelString)
+	if err != nil {
+		log.Println(err)
+	}
+	return level <= checkLevel
+}
