@@ -70,23 +70,22 @@ func main() {
 		log.Printf("Checking for %v vulnerabilities on production repositories\n", prodVulnLevel.String())
 		log.Printf("Checking for %v vulnerabilities on dev dependencies repositories\n", devVulnLevel.String())
 		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
-		auditArgs = []string{
-			"audit",
-		}
-		reportString, err := runCommand("npm", auditArgs)
-		if failBuild && err != nil {
-			log.Println(reportString)
-			log.Fatal(err)
-		} else {
-			if hasVulns {
-				// TODO: send report via Slack
-				log.Println(reportString)
-				if err != nil {
-					log.Println(err)
-				}
-			} else {
-				log.Println("No vulnerabilities in your repository for now. Cheers!")
+
+		if hasVulns {
+			auditArgs = []string{
+				"audit",
 			}
+			reportString, err := runCommand("npm", auditArgs)
+
+			// TODO: also send report via Slack
+			log.Println(reportString)
+			if failBuild {
+				log.Fatal(err)
+			} else {
+				log.Println(err)
+			}
+		} else {
+			log.Println("No vulnerabilities in your repository for now. Cheers!")
 		}
 	default:
 		log.Fatal("Set `action: <action>` on this step to audit.")
