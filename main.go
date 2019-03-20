@@ -66,17 +66,9 @@ func main() {
 		outputString = runCommandGetOutput("npm", auditArgs)
 		auditReport = readAuditReport(outputString)
 
-		failBuild := false
-		for _, advisory := range auditReport.Advisories {
-			severity := advisory.Severity
-			for _, finding := range advisory.Findings {
-				if finding.Dev {
-					failBuild = IsCheckEnabled(devVulnLevel, severity)
-				} else {
-					failBuild = IsCheckEnabled(prodVulnLevel, severity)
-				}
-			}
-		}
+		log.Printf("Checking for %v vulnerabilities on production repositories\n", prodVulnLevel.String())
+		log.Printf("Checking for %v vulnerabilities on dev dependencies repositories\n", devVulnLevel.String())
+		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
 		if failBuild {
 			auditArgs := []string{
 				"audit",
@@ -120,4 +112,30 @@ func runCommandGetOutput(command string, args []string) string {
 		log.Println(err)
 	}
 	return outb.String()
+}
+
+func isCheckEnabled(level Level, levelString string) bool {
+	checkLevel, err := VulnLevel(levelString)
+	if err != nil {
+		log.Println(err)
+	}
+	return level <= checkLevel
+}
+
+func checkIfBuildShouldFail(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild bool) {
+	failBuild = false
+	for _, advisory := range auditReport.Advisories {
+		severity := advisory.Severity
+		for _, finding := range advisory.Findings {
+			if finding.Dev {
+				failBuild = isCheckEnabled(devVulnLevel, severity)
+			} else {
+				failBuild = isCheckEnabled(prodVulnLevel, severity)
+			}
+			if failBuild {
+				return
+			}
+		}
+	}
+	return
 }
