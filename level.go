@@ -11,8 +11,7 @@ var ErrInvalidVulnLevel = errors.New("invalid vulnerability level, falling back 
 type Level int
 
 const (
-	Info = iota
-	Low
+	Low = iota
 	Moderate
 	High
 	Critical
@@ -20,7 +19,6 @@ const (
 )
 
 var levelNames = []string{
-	"info",
 	"low",
 	"moderate",
 	"high",
