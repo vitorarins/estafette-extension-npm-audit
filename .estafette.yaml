@@ -28,20 +28,18 @@ stages:
     image: extensions/docker:stable
     action: build
     repositories:
-    - eu.gcr.io/travix-com
+    - extensions
+    container: npm-audit
     path: ./publish
     copy:
     - /etc/ssl/certs/ca-certificates.crt
-
-  # test the container before pushing it
-  integration-test:
-    image: eu.gcr.io/travix-com/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
 
   push-to-docker-registry:
     image: extensions/docker:stable
     action: push
     repositories:
-    - eu.gcr.io/travix-com
+    - extensions
+    container: npm-audit
 
   # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:
@@ -59,8 +57,9 @@ releases:
       tag-container-image:
         image: extensions/docker:stable
         action: tag
+        container: npm-audit
         repositories:
-        - eu.gcr.io/travix-com
+        - extensions
         tags:
         - beta
 
@@ -78,8 +77,9 @@ releases:
       tag-container-image:
         image: extensions/docker:stable
         action: tag
+        container: npm-audit
         repositories:
-        - eu.gcr.io/travix-com
+        - extensions
         tags:
         - stable
         - latest

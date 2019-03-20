@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"github.com/alecthomas/kingpin"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
-
-	"github.com/alecthomas/kingpin"
 )
 
 var (
@@ -21,6 +21,7 @@ var (
 var (
 	// flags
 	action = kingpin.Flag("action", "Any of the following actions: audit.").Envar("ESTAFETTE_EXTENSION_ACTION").String()
+	level  = kingpin.Flag("level", "Level of security you want to check for. It can be: info, low, moderate, high or critical.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_LEVEL").String()
 )
 
 func main() {
@@ -48,6 +49,7 @@ func main() {
 		log.Printf("Auditing repo...\n")
 		auditArgs := []string{
 			"audit",
+			fmt.Sprintf("--audit-level=%v", *level),
 		}
 		runCommand("npm", auditArgs)
 
