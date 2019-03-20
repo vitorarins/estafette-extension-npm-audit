@@ -42,7 +42,7 @@ func main() {
 		log.Println(err)
 	}
 
-	devVulnLevel, err := VulnLevel(*level)
+	devVulnLevel, err := VulnLevel(*devLevel)
 	if err != nil {
 		log.Println(err)
 	}
@@ -71,9 +71,9 @@ func main() {
 			severity := advisory.Severity
 			for _, finding := range advisory.Findings {
 				if finding.Dev {
-					failBuild = IsCheckEnabled(prodVulnLevel, severity)
-				} else {
 					failBuild = IsCheckEnabled(devVulnLevel, severity)
+				} else {
+					failBuild = IsCheckEnabled(prodVulnLevel, severity)
 				}
 			}
 		}
