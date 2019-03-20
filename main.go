@@ -84,6 +84,7 @@ func main() {
 			// TODO: send report via Slack
 			runCommand("npm", auditArgs)
 		} else {
+			// TODO: send report via Slack
 			log.Println("Auditing passed, but you might still have vulnerabilities.")
 		}
 	default:
