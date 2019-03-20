@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"github.com/alecthomas/kingpin"
 	"log"
 	"os"
@@ -20,8 +20,9 @@ var (
 
 var (
 	// flags
-	action = kingpin.Flag("action", "Any of the following actions: audit.").Envar("ESTAFETTE_EXTENSION_ACTION").String()
-	level  = kingpin.Flag("level", "Level of security you want to check for. It can be: info, low, moderate, high or critical.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_LEVEL").String()
+	action   = kingpin.Flag("action", "Any of the following actions: audit.").Envar("ESTAFETTE_EXTENSION_ACTION").String()
+	level    = kingpin.Flag("level", "Level of security you want to check for. It can be: info, low, moderate, high or critical.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_LEVEL").String()
+	devLevel = kingpin.Flag("dev-level", "Level of security you want to check for your Dev dependencies. It can be: info, low, moderate, high or critical.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_DEV_LEVEL").String()
 )
 
 func main() {
@@ -36,6 +37,8 @@ func main() {
 	// log startup message
 	log.Printf("Starting estafette-extension-npm-audit version %v...", version)
 
+	var outputString string
+	var auditReport AuditReportBody
 	switch *action {
 	case "audit":
 
@@ -49,10 +52,17 @@ func main() {
 		log.Printf("Auditing repo...\n")
 		auditArgs := []string{
 			"audit",
-			fmt.Sprintf("--audit-level=%v", *level),
+			"--json",
 		}
-		runCommand("npm", auditArgs)
+		outputString = runCommandGetOutput("npm", auditArgs)
+		auditReport = readAuditReport(outputString)
 
+		// for id, advisory := range auditReport.Advisories {
+		// 	for _, finding := range advisory.Findings {
+
+		// 	}
+		// }
+		log.Printf("%v", auditReport)
 	default:
 		log.Fatal("Set `action: <action>` on this step to audit.")
 	}
@@ -72,4 +82,18 @@ func runCommand(command string, args []string) {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	handleError(err)
+}
+
+func runCommandGetOutput(command string, args []string) string {
+	log.Printf("Running command '%v %v'...", command, strings.Join(args, " "))
+	cmd := exec.Command(command, args...)
+	cmd.Dir = "/estafette-work"
+	var outb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Println(err)
+	}
+	return outb.String()
 }
