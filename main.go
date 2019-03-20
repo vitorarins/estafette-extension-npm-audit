@@ -46,8 +46,6 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	var outputString string
-	var auditReport AuditReportBody
 	switch *action {
 	case "audit":
 
@@ -55,7 +53,6 @@ func main() {
 
 		// image: extensions/npm-audit:stable
 		// action: audit
-		// level: critical
 
 		// audit repo
 		log.Printf("Auditing repo...\n")
@@ -63,44 +60,40 @@ func main() {
 			"audit",
 			"--json",
 		}
-		outputString = runCommandGetOutput("npm", auditArgs)
-		auditReport = readAuditReport(outputString)
+		reportJson, err := runCommand("npm", auditArgs)
+		if err != nil {
+			log.Println(err)
+		}
+
+		auditReport := readAuditReport(reportJson)
 
 		log.Printf("Checking for %v vulnerabilities on production repositories\n", prodVulnLevel.String())
 		log.Printf("Checking for %v vulnerabilities on dev dependencies repositories\n", devVulnLevel.String())
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
-		if failBuild {
-			auditArgs := []string{
-				"audit",
-			}
-			// TODO: send report via Slack
-			runCommand("npm", auditArgs)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		auditArgs = []string{
+			"audit",
+		}
+		reportString, err := runCommand("npm", auditArgs)
+		if failBuild && err != nil {
+			log.Println(reportString)
+			log.Fatal(err)
 		} else {
-			// TODO: send report via Slack
-			log.Println("Auditing passed, but you might still have vulnerabilities.")
+			if hasVulns {
+				// TODO: send report via Slack
+				log.Println(reportString)
+				if err != nil {
+					log.Println(err)
+				}
+			} else {
+				log.Println("No vulnerabilities in your repository for now. Cheers!")
+			}
 		}
 	default:
 		log.Fatal("Set `action: <action>` on this step to audit.")
 	}
 }
 
-func handleError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func runCommand(command string, args []string) {
-	log.Printf("Running command '%v %v'...", command, strings.Join(args, " "))
-	cmd := exec.Command(command, args...)
-	cmd.Dir = "/estafette-work"
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	handleError(err)
-}
-
-func runCommandGetOutput(command string, args []string) string {
+func runCommand(command string, args []string) (string, error) {
 	log.Printf("Running command '%v %v'...", command, strings.Join(args, " "))
 	cmd := exec.Command(command, args...)
 	cmd.Dir = "/estafette-work"
@@ -108,10 +101,7 @@ func runCommandGetOutput(command string, args []string) string {
 	cmd.Stdout = &outb
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	if err != nil {
-		log.Println(err)
-	}
-	return outb.String()
+	return outb.String(), err
 }
 
 func isCheckEnabled(level Level, levelString string) bool {
@@ -122,9 +112,11 @@ func isCheckEnabled(level Level, levelString string) bool {
 	return level <= checkLevel
 }
 
-func checkIfBuildShouldFail(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild bool) {
+func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasVulnerabilities bool) {
 	failBuild = false
+	hasVulnerabilities = false
 	for _, advisory := range auditReport.Advisories {
+		hasVulnerabilities = true
 		severity := advisory.Severity
 		for _, finding := range advisory.Findings {
 			if finding.Dev {

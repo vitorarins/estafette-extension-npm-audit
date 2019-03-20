@@ -25,23 +25,39 @@ func TestAuditRepository(t *testing.T) {
 
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(Critical)
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
 	})
 
 	t.Run("AuditRepositoryLowProdLowDev", func(t *testing.T) {
 
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(Low)
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
 	})
 
 	t.Run("AuditRepositoryLowProdNoneDev", func(t *testing.T) {
 
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(None)
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 		assert.False(t, failBuild)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("AuditRepositoryWithoutVulnerabilities", func(t *testing.T) {
+
+		auditReportNoVulns := AuditReportBody{
+			map[int]Advisory{},
+			Metadata{},
+		}
+		prodVulnLevel := Level(Low)
+		devVulnLevel := Level(None)
+		failBuild, hasVulns := checkVulnerabilities(auditReportNoVulns, prodVulnLevel, devVulnLevel)
+		assert.False(t, failBuild)
+		assert.False(t, hasVulns)
 	})
 }
