@@ -78,9 +78,14 @@ func main() {
 			}
 		}
 		if failBuild {
-			log.Fatal("Your repository has vulnerabilities.")
+			auditArgs := []string{
+				"audit",
+			}
+			// TODO: send report via Slack
+			runCommand("npm", auditArgs)
+		} else {
+			log.Println("Auditing passed, but you might still have vulnerabilities.")
 		}
-		log.Printf("%v", auditReport)
 	default:
 		log.Fatal("Set `action: <action>` on this step to audit.")
 	}
