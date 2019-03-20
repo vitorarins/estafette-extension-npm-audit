@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var ErrInvalidVulnLevel = errors.New("invalid vulnerability level")
+var ErrInvalidVulnLevel = errors.New("invalid vulnerability level, falling back to 'low'.")
 
 type Level int
 
@@ -16,6 +16,7 @@ const (
 	Moderate
 	High
 	Critical
+	None
 )
 
 var levelNames = []string{
@@ -24,6 +25,7 @@ var levelNames = []string{
 	"moderate",
 	"high",
 	"critical",
+	"none",
 }
 
 func (p Level) String() string {
