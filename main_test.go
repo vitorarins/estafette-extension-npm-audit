@@ -61,3 +61,45 @@ func TestAuditRepository(t *testing.T) {
 		assert.False(t, hasVulns)
 	})
 }
+
+func TestGetSlackClient(t *testing.T) {
+	slackChannels := "builds,builds-estafette"
+	slackWebhookURL := "https://estafette.slack.com/webhook"
+	noCredentialsJSON := "{}"
+	noWorkspace := ""
+
+	t.Run("GetSlackIntegration", func(t *testing.T) {
+
+		slackEnabled, slackWebhookClient := getSlackIntegration(&slackChannels, &slackWebhookURL, &noCredentialsJSON, &noWorkspace)
+
+		assert.True(t, slackEnabled)
+		assert.NotNil(t, slackWebhookClient)
+	})
+
+	t.Run("GetSlackIntegrationNoChannels", func(t *testing.T) {
+		noChannels := ""
+
+		slackEnabled, slackWebhookClient := getSlackIntegration(&noChannels, &slackWebhookURL, &noCredentialsJSON, &noWorkspace)
+
+		assert.False(t, slackEnabled)
+		assert.Nil(t, slackWebhookClient)
+	})
+
+	t.Run("GetSlackIntegrationNoWebhookURLWithCredentials", func(t *testing.T) {
+		noWebhookURL := ""
+		slackWorkspace := "estafette"
+		slackCredentialsJSON := `[{
+"name": "estafette",
+"type": "idk",
+"additionalProperties": {
+  "workspace": "estafette",
+  "webhook": "https://estafette.slack.com/webhook"
+  }
+}]`
+
+		slackEnabled, slackWebhookClient := getSlackIntegration(&slackChannels, &noWebhookURL, &slackCredentialsJSON, &slackWorkspace)
+
+		assert.True(t, slackEnabled)
+		assert.NotNil(t, slackWebhookClient)
+	})
+}

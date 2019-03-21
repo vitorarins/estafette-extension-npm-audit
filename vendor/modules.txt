@@ -9,5 +9,7 @@ github.com/alecthomas/units
 github.com/davecgh/go-spew/spew
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/sethgrid/pester v0.0.0-20190127155807-68a33a018ad0
+github.com/sethgrid/pester
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
