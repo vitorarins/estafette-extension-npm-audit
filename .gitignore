@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+estafette-extension-npm-audit
 
 # Test binary, build with `go test -c`
 *.test
