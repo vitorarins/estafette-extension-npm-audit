@@ -72,6 +72,9 @@ func main() {
 		}
 		reportJson, err := runCommand("npm", auditArgs)
 		if err != nil {
+			if reportJson == "" {
+				log.Fatal(err)
+			}
 			log.Println(err)
 		}
 
