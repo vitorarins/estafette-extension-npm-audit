@@ -26,7 +26,7 @@ var (
 	devLevel = kingpin.Flag("dev-level", "Level of security you want to check for your Dev dependencies. It can be: low, moderate, high, critical or none.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_DEV_LEVEL").String()
 
 	// slack flags
-	slackWebhookURL      = kingpin.Flag("slack-webhook-url", "A slack webhook url to allow sending messages.").Envar("ESTAFETTE_EXTENSION_SLACK_WEBHOOK").String()
+	slackWebhookURL      = kingpin.Flag("slack-webhook-url", "A slack webhook url to allow sending messages.").Envar("ESTAFETTE_EXTENSION_SLACK_WEBHOOK_URL").String()
 	slackChannels        = kingpin.Flag("slack-channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_SLACK_CHANNELS").String()
 	slackWorkspace       = kingpin.Flag("slack-workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_SLACK_WORKSPACE").String()
 	slackCredentialsJSON = kingpin.Flag("slack-credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()

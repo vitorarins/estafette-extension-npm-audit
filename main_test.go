@@ -65,7 +65,7 @@ func TestAuditRepository(t *testing.T) {
 func TestGetSlackClient(t *testing.T) {
 	slackChannels := "builds,builds-estafette"
 	slackWebhookURL := "https://estafette.slack.com/webhook"
-	noCredentialsJSON := "{}"
+	noCredentialsJSON := ""
 	noWorkspace := ""
 
 	t.Run("GetSlackIntegration", func(t *testing.T) {
