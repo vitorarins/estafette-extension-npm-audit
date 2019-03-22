@@ -40,6 +40,8 @@ stages:
     repositories:
     - extensions
     container: npm-audit
+    tags:
+    - dev
 
   # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:
