@@ -27,8 +27,8 @@ var (
 	devLevel = kingpin.Flag("dev-level", "Level of security you want to check for your Dev dependencies. It can be: low, moderate, high, critical or none.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_DEV_LEVEL").String()
 
 	// slack flags
-	slackChannels        = kingpin.Flag("channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_SLACK_CHANNELS").String()
-	slackWorkspace       = kingpin.Flag("workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_SLACK_WORKSPACE").String()
+	slackChannels        = kingpin.Flag("channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_CHANNELS").String()
+	slackWorkspace       = kingpin.Flag("workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_WORKSPACE").String()
 	slackCredentialsJSON = kingpin.Flag("credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()
 
 	// git flags
@@ -176,7 +176,7 @@ func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace *st
 			log.Printf("Checking if Slack credential %v exists...", *slackWorkspace)
 			slackCredential = GetCredentialsByWorkspace(slackCredentials, *slackWorkspace)
 		} else {
-			log.Fatal("Flags slack-credentials and slack-workspace have to be set")
+			log.Fatal("Flags credentials and workspace have to be set")
 		}
 
 		if slackCredential == nil {
