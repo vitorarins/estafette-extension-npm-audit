@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/alecthomas/kingpin"
 	"log"
 	"os"
@@ -29,6 +30,10 @@ var (
 	slackChannels        = kingpin.Flag("slack-channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_SLACK_CHANNELS").String()
 	slackWorkspace       = kingpin.Flag("slack-workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_SLACK_WORKSPACE").String()
 	slackCredentialsJSON = kingpin.Flag("slack-credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()
+
+	// git flags
+	gitRepoSource   = kingpin.Flag("git-repo-source", "The source of the git repository, github.com in this case.").Envar("ESTAFETTE_GIT_SOURCE").Required().String()
+	gitRepoFullname = kingpin.Flag("git-repo-fullname", "The owner and repo name of the Github repository.").Envar("ESTAFETTE_GIT_FULLNAME").Required().String()
 )
 
 func main() {
@@ -93,11 +98,12 @@ func main() {
 
 			// also send report via Slack
 			if slackEnabled {
-				title := "Vulnerabilities found in your repository."
+				titleLink := fmt.Sprintf("%v/%v", *gitRepoSource, *gitRepoFullname)
+				title := fmt.Sprintf("Vulnerabilities found in your repository: %v", *gitRepoFullname)
 				// split on comma and loop through channels
 				channels := strings.Split(*slackChannels, ",")
 				for i := range channels {
-					err := slackWebhookClient.SendMessage(channels[i], title, reportString)
+					err := slackWebhookClient.SendMessage(channels[i], title, titleLink, reportString)
 					if err != nil {
 						log.Printf("Sending status to Slack failed: %v", err)
 					}
