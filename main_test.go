@@ -25,23 +25,77 @@ func TestAuditRepository(t *testing.T) {
 
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(Critical)
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
 	})
 
 	t.Run("AuditRepositoryLowProdLowDev", func(t *testing.T) {
 
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(Low)
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
 	})
 
 	t.Run("AuditRepositoryLowProdNoneDev", func(t *testing.T) {
 
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(None)
-		failBuild := checkIfBuildShouldFail(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 		assert.False(t, failBuild)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("AuditRepositoryWithoutVulnerabilities", func(t *testing.T) {
+
+		auditReportNoVulns := AuditReportBody{
+			map[int]Advisory{},
+			Metadata{},
+		}
+		prodVulnLevel := Level(Low)
+		devVulnLevel := Level(None)
+		failBuild, hasVulns := checkVulnerabilities(auditReportNoVulns, prodVulnLevel, devVulnLevel)
+		assert.False(t, failBuild)
+		assert.False(t, hasVulns)
+	})
+}
+
+func TestGetSlackClient(t *testing.T) {
+	slackChannels := "builds,builds-estafette"
+	slackWorkspace := "estafette"
+	slackCredentialsJSON := `[{
+"name": "estafette",
+"type": "idk",
+"additionalProperties": {
+  "workspace": "estafette",
+  "webhook": "https://estafette.slack.com/webhook"
+  }
+}]`
+
+	t.Run("GetSlackIntegration", func(t *testing.T) {
+
+		slackEnabled, slackWebhookClient := getSlackIntegration(&slackChannels, &slackCredentialsJSON, &slackWorkspace)
+
+		assert.True(t, slackEnabled)
+		assert.NotNil(t, slackWebhookClient)
+	})
+
+	t.Run("GetSlackIntegrationNoChannels", func(t *testing.T) {
+		noChannels := ""
+
+		slackEnabled, slackWebhookClient := getSlackIntegration(&noChannels, &slackCredentialsJSON, &slackWorkspace)
+
+		assert.False(t, slackEnabled)
+		assert.Nil(t, slackWebhookClient)
+	})
+
+	t.Run("GetSlackIntegrationNoWebhookURLWithCredentials", func(t *testing.T) {
+
+		slackEnabled, slackWebhookClient := getSlackIntegration(&slackChannels, &slackCredentialsJSON, &slackWorkspace)
+
+		assert.True(t, slackEnabled)
+		assert.NotNil(t, slackWebhookClient)
 	})
 }
