@@ -32,8 +32,9 @@ var (
 	slackCredentialsJSON = kingpin.Flag("credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()
 
 	// git flags
-	gitRepoSource   = kingpin.Flag("git-repo-source", "The source of the git repository, github.com in this case.").Envar("ESTAFETTE_GIT_SOURCE").Required().String()
-	gitRepoFullname = kingpin.Flag("git-repo-fullname", "The owner and repo name of the Github repository.").Envar("ESTAFETTE_GIT_FULLNAME").Required().String()
+	gitRepoSource = kingpin.Flag("git-repo-source", "The source of the git repository, github.com in this case.").Envar("ESTAFETTE_GIT_SOURCE").Required().String()
+	gitRepoOwner  = kingpin.Flag("git-repo-owner", "The owner of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_OWNER").Required().String()
+	gitRepoName   = kingpin.Flag("git-repo-name", "The repo name of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_NAME").Required().String()
 )
 
 func main() {
@@ -103,8 +104,8 @@ func main() {
 
 			// also send report via Slack
 			if slackEnabled {
-				titleLink := fmt.Sprintf("https://%v/%v", *gitRepoSource, *gitRepoFullname)
-				title := fmt.Sprintf("Vulnerabilities found in your repository: %v", *gitRepoFullname)
+				titleLink := fmt.Sprintf("https://%v/%v/%v", *gitRepoSource, *gitRepoOwner, *gitRepoName)
+				title := fmt.Sprintf("Vulnerabilities found in your repository: %v", *gitRepoName)
 				// split on comma and loop through channels
 				channels := strings.Split(*slackChannels, ",")
 				for i := range channels {
