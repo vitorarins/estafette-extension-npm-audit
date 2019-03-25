@@ -84,8 +84,13 @@ func main() {
 
 		auditReport := readAuditReport(reportJson)
 
-		log.Printf("Checking for %v vulnerabilities on production repositories\n", prodVulnLevel.String())
-		log.Printf("Checking for %v vulnerabilities on dev dependencies repositories\n", devVulnLevel.String())
+		log.Printf("Checking %v dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.Dependencies, prodVulnLevel.String())
+		if devVulnLevel != None {
+			log.Printf("Checking %v dev dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.DevDependencies, devVulnLevel.String())
+		} else {
+			log.Printf("Not checking for vulnerabilities in dev dependencies")
+		}
+
 		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		if hasVulns {
