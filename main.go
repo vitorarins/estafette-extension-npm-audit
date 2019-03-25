@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"github.com/alecthomas/kingpin"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 )
 
 var (
@@ -36,6 +38,12 @@ var (
 	gitRepoOwner  = kingpin.Flag("git-repo-owner", "The owner of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_OWNER").Required().String()
 	gitRepoName   = kingpin.Flag("git-repo-name", "The repo name of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_NAME").Required().String()
 )
+
+var random *rand.Rand
+
+func init() {
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 
 func main() {
 
@@ -75,7 +83,7 @@ func main() {
 			"audit",
 			"--json",
 		}
-		reportJson, err := runCommand("npm", auditArgs)
+		reportJson, err := retryCommand("npm", auditArgs)
 		if err != nil {
 			if reportJson == "" {
 				log.Fatal(err)
@@ -98,7 +106,7 @@ func main() {
 			auditArgs = []string{
 				"audit",
 			}
-			reportString, err := runCommand("npm", auditArgs)
+			reportString, err := retryCommand("npm", auditArgs)
 
 			log.Println(reportString)
 
@@ -137,6 +145,35 @@ func runCommand(command string, args []string) (string, error) {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	return outb.String(), err
+}
+
+func retryCommand(command string, args []string) (out string, err error) {
+	for i := 1; i <= 3; i++ {
+		out, err = runCommand(command, args)
+		if out == "" && err != nil {
+			time.After(jitter(i) + 1*time.Microsecond)
+		} else {
+			return
+		}
+	}
+	return
+}
+
+func jitter(i int) time.Duration {
+	i = int(1 << uint(i))
+	ms := i * 1000
+
+	maxJitter := ms / 3
+
+	// ms ± rand
+	ms += random.Intn(2*maxJitter) - maxJitter
+
+	// a jitter of 0 messes up the time.Tick chan
+	if ms <= 0 {
+		ms = 1
+	}
+
+	return time.Duration(ms) * time.Millisecond
 }
 
 func isCheckEnabled(level Level, levelString string) bool {
