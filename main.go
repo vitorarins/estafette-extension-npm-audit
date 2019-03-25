@@ -98,7 +98,7 @@ func main() {
 
 			// also send report via Slack
 			if slackEnabled {
-				titleLink := fmt.Sprintf("%v/%v", *gitRepoSource, *gitRepoFullname)
+				titleLink := fmt.Sprintf("https://%v/%v", *gitRepoSource, *gitRepoFullname)
 				title := fmt.Sprintf("Vulnerabilities found in your repository: %v", *gitRepoFullname)
 				// split on comma and loop through channels
 				channels := strings.Split(*slackChannels, ",")
