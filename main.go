@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/alecthomas/kingpin"
 	"log"
 	"os"
@@ -26,9 +27,14 @@ var (
 	devLevel = kingpin.Flag("dev-level", "Level of security you want to check for your Dev dependencies. It can be: low, moderate, high, critical or none.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_DEV_LEVEL").String()
 
 	// slack flags
-	slackChannels        = kingpin.Flag("slack-channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_SLACK_CHANNELS").String()
-	slackWorkspace       = kingpin.Flag("slack-workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_SLACK_WORKSPACE").String()
-	slackCredentialsJSON = kingpin.Flag("slack-credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()
+	slackChannels        = kingpin.Flag("channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_CHANNELS").String()
+	slackWorkspace       = kingpin.Flag("workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_WORKSPACE").String()
+	slackCredentialsJSON = kingpin.Flag("credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()
+
+	// git flags
+	gitRepoSource = kingpin.Flag("git-repo-source", "The source of the git repository, github.com in this case.").Envar("ESTAFETTE_GIT_SOURCE").Required().String()
+	gitRepoOwner  = kingpin.Flag("git-repo-owner", "The owner of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_OWNER").Required().String()
+	gitRepoName   = kingpin.Flag("git-repo-name", "The repo name of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_NAME").Required().String()
 )
 
 func main() {
@@ -79,8 +85,13 @@ func main() {
 
 		auditReport := readAuditReport(reportJson)
 
-		log.Printf("Checking for %v vulnerabilities on production repositories\n", prodVulnLevel.String())
-		log.Printf("Checking for %v vulnerabilities on dev dependencies repositories\n", devVulnLevel.String())
+		log.Printf("Checking %v dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.Dependencies, prodVulnLevel.String())
+		if devVulnLevel != None {
+			log.Printf("Checking %v dev dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.DevDependencies, devVulnLevel.String())
+		} else {
+			log.Printf("Not checking for vulnerabilities in dev dependencies")
+		}
+
 		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		if hasVulns {
@@ -93,11 +104,12 @@ func main() {
 
 			// also send report via Slack
 			if slackEnabled {
-				title := "Vulnerabilities found in your repository."
+				titleLink := fmt.Sprintf("https://%v/%v/%v", *gitRepoSource, *gitRepoOwner, *gitRepoName)
+				title := fmt.Sprintf("Vulnerabilities found in your repository: %v", *gitRepoName)
 				// split on comma and loop through channels
 				channels := strings.Split(*slackChannels, ",")
 				for i := range channels {
-					err := slackWebhookClient.SendMessage(channels[i], title, reportString)
+					err := slackWebhookClient.SendMessage(channels[i], title, titleLink, reportString)
 					if err != nil {
 						log.Printf("Sending status to Slack failed: %v", err)
 					}
@@ -170,7 +182,7 @@ func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace *st
 			log.Printf("Checking if Slack credential %v exists...", *slackWorkspace)
 			slackCredential = GetCredentialsByWorkspace(slackCredentials, *slackWorkspace)
 		} else {
-			log.Fatal("Flags slack-credentials and slack-workspace have to be set")
+			log.Fatal("Flags credentials and workspace have to be set")
 		}
 
 		if slackCredential == nil {
