@@ -9,6 +9,7 @@ import (
 type AuditReportBody struct {
 	Advisories map[int]Advisory `json:"advisories,omitempty"`
 	Metadata   Metadata         `json:"metadata,omitempty"`
+	Error      CommandError     `json:"error,omitempty"`
 }
 
 type Advisory struct {
@@ -38,6 +39,12 @@ type Vulnerabilities struct {
 	Moderate int `json:"moderate,omitempty"`
 	High     int `json:"high,omitempty"`
 	Critical int `json:"critical,omitempty"`
+}
+
+type CommandError struct {
+	Code    string `json:"code,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Detail  string `json:"detail,omitempty"`
 }
 
 func readAuditReport(report string) AuditReportBody {

@@ -17,8 +17,8 @@ func TestAuditRepository(t *testing.T) {
 	metadata := Metadata{vulnerabilities, 527, 39, 0, 566}
 	var auditReport AuditReportBody
 	auditReport = AuditReportBody{
-		advisories,
-		metadata,
+		Advisories: advisories,
+		Metadata:   metadata,
 	}
 
 	t.Run("AuditRepositoryLowProdCriticalDev", func(t *testing.T) {
@@ -51,8 +51,8 @@ func TestAuditRepository(t *testing.T) {
 	t.Run("AuditRepositoryWithoutVulnerabilities", func(t *testing.T) {
 
 		auditReportNoVulns := AuditReportBody{
-			map[int]Advisory{},
-			Metadata{},
+			Advisories: map[int]Advisory{},
+			Metadata:   Metadata{},
 		}
 		prodVulnLevel := Level(Low)
 		devVulnLevel := Level(None)

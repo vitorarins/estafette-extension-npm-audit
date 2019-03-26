@@ -79,19 +79,10 @@ func main() {
 
 		// audit repo
 		log.Printf("Auditing repo...\n")
-		auditArgs := []string{
-			"audit",
-			"--json",
-		}
-		reportJson, err := retryCommand("npm", auditArgs)
+		auditReport, err := retryGetReport()
 		if err != nil {
-			if reportJson == "" {
-				log.Fatal(err)
-			}
-			log.Println(err)
+			log.Fatal(err)
 		}
-
-		auditReport := readAuditReport(reportJson)
 
 		log.Printf("Checking %v dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.Dependencies, prodVulnLevel.String())
 		if devVulnLevel != None {
@@ -103,7 +94,7 @@ func main() {
 		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		if hasVulns {
-			auditArgs = []string{
+			auditArgs := []string{
 				"audit",
 			}
 			reportString, err := retryCommand("npm", auditArgs)
@@ -154,6 +145,28 @@ func retryCommand(command string, args []string) (out string, err error) {
 			time.After(jitter(i) + 1*time.Microsecond)
 		} else {
 			return
+		}
+	}
+	return
+}
+
+func retryGetReport() (auditReport AuditReportBody, err error) {
+	auditArgs := []string{
+		"audit",
+		"--json",
+	}
+	var out string
+	for i := 1; i <= 3; i++ {
+		out, err = runCommand("npm", auditArgs)
+		if out == "" {
+			time.After(jitter(i) + 1*time.Microsecond)
+		} else {
+			auditReport = readAuditReport(out)
+			if auditReport.Error.Code != "" {
+				time.After(jitter(i) + 1*time.Microsecond)
+			} else {
+				return
+			}
 		}
 	}
 	return
