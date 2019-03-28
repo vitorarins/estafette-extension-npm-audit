@@ -142,7 +142,7 @@ func retryCommand(command string, args []string) (out string, err error) {
 	for i := 1; i <= 3; i++ {
 		out, err = runCommand(command, args)
 		if out == "" && err != nil {
-			time.After(jitter(i) + 1*time.Microsecond)
+			time.Sleep(jitter(i) + 1*time.Microsecond)
 		} else {
 			return
 		}
@@ -159,11 +159,11 @@ func retryGetReport() (auditReport AuditReportBody, err error) {
 	for i := 1; i <= 3; i++ {
 		out, err = runCommand("npm", auditArgs)
 		if out == "" {
-			time.After(jitter(i) + 1*time.Microsecond)
+			time.Sleep(jitter(i) + 1*time.Microsecond)
 		} else {
 			auditReport = readAuditReport(out)
 			if auditReport.Error.Code != "" {
-				time.After(jitter(i) + 1*time.Microsecond)
+				time.Sleep(jitter(i) + 1*time.Microsecond)
 			} else {
 				return
 			}
@@ -173,6 +173,7 @@ func retryGetReport() (auditReport AuditReportBody, err error) {
 }
 
 func jitter(i int) time.Duration {
+
 	i = int(1 << uint(i))
 	ms := i * 1000
 
