@@ -178,11 +178,23 @@ func retryGetReport() (auditReport AuditReportBody, err error) {
 			if out != "" {
 				auditReport = readAuditReport(out)
 				if auditReport.Error.Code == "" {
+					// if we get the output and got the report without errors, don't throw err
+					if err != nil {
+						log.Println(err)
+						err = nil
+					}
 					return
 				}
 			}
 		}
 	}
+
+	// if we get the output and got the report without errors, don't throw err
+	if err != nil {
+		log.Println(err)
+		err = nil
+	}
+
 	return
 }
 
