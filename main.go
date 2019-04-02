@@ -139,12 +139,15 @@ func runCommand(command string, args []string) (string, error) {
 }
 
 func retryCommand(command string, args []string) (out string, err error) {
-	for i := 1; i <= 3; i++ {
-		out, err = runCommand(command, args)
-		if out == "" && err != nil {
+	out, err = runCommand(command, args)
+	if out == "" && err != nil {
+		for i := 1; i <= 3; i++ {
+
 			time.Sleep(jitter(i) + 1*time.Microsecond)
-		} else {
-			return
+			out, err = runCommand(command, args)
+			if out != "" && err == nil {
+				return
+			}
 		}
 	}
 	return
@@ -156,16 +159,27 @@ func retryGetReport() (auditReport AuditReportBody, err error) {
 		"--json",
 	}
 	var out string
-	for i := 1; i <= 3; i++ {
-		out, err = runCommand("npm", auditArgs)
-		if out == "" {
+	out, err = runCommand("npm", auditArgs)
+
+	shouldRetry := false
+	if out == "" {
+		shouldRetry = true
+	} else {
+		auditReport = readAuditReport(out)
+		if auditReport.Error.Code != "" {
+			shouldRetry = true
+		}
+	}
+
+	if shouldRetry {
+		for i := 1; i <= 3; i++ {
 			time.Sleep(jitter(i) + 1*time.Microsecond)
-		} else {
-			auditReport = readAuditReport(out)
-			if auditReport.Error.Code != "" {
-				time.Sleep(jitter(i) + 1*time.Microsecond)
-			} else {
-				return
+			out, err = runCommand("npm", auditArgs)
+			if out != "" {
+				auditReport = readAuditReport(out)
+				if auditReport.Error.Code == "" {
+					return
+				}
 			}
 		}
 	}
