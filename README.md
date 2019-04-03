@@ -41,7 +41,7 @@ With level `none` you disable the check completely.
 #### Example
 Let's say you want to check only for vulnerabilities that have a priority level higher or equal to **moderate**.
 
-Then if audit finds vulnerabilities with level lower than moderate, this extension will send a Slack message to [channels](#channels) with the npm audit report.
+Then if audit finds vulnerabilities with level lower than moderate, this extension will send a Slack message to [channels](#channels) with the npm audit report. And your build will continue.
 
 If audit finds vulnerabilities with level higher or equal to moderate, then your build will break and you will still receive a Slack message.
 
