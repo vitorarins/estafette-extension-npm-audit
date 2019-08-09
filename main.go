@@ -79,7 +79,7 @@ func main() {
 
 		// audit repo
 		log.Printf("Auditing repo...\n")
-		auditReport, err := retryGetReport()
+		auditReport, err := retryGetReport(devVulnLevel)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -153,10 +153,13 @@ func retryCommand(command string, args []string) (out string, err error) {
 	return
 }
 
-func retryGetReport() (auditReport AuditReportBody, err error) {
+func retryGetReport(devVulnLevel Level) (auditReport AuditReportBody, err error) {
 	auditArgs := []string{
 		"audit",
 		"--json",
+	}
+	if devVulnLevel == None {
+		auditArgs = append(auditArgs, "--production")
 	}
 	var out string
 	out, err = runCommand("npm", auditArgs)
