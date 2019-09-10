@@ -4,14 +4,15 @@ This extension allows you to audit npm packages
 ## Development
 Before committing your changes run:
 
-```
+```bash
 go test ./...
 go mod tidy
-go mod vendor
 ```
+
 ## Usage
 You can add one stage to your `.estafette.yaml` like this:
-```
+
+```yaml
 stages:
   audit:
     image: extensions/npm-audit:stable
