@@ -232,16 +232,23 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 	hasVulnerabilities = false
 	for _, advisory := range auditReport.Advisories {
 		hasVulnerabilities = true
+		devVulnerability := false
 		severity := advisory.Severity
-		for _, finding := range advisory.Findings {
-			if finding.Dev {
-				failBuild = isCheckEnabled(devVulnLevel, severity)
-			} else {
-				failBuild = isCheckEnabled(prodVulnLevel, severity)
+		for _, action := range auditReport.Actions {
+			for _, resolve := range action.Resolves {
+				if resolve.Id == advisory.Id {
+					devVulnerability = resolve.Dev
+				}
 			}
-			if failBuild {
-				return
-			}
+		}
+
+		if devVulnerability {
+			failBuild = isCheckEnabled(devVulnLevel, severity)
+		} else {
+			failBuild = isCheckEnabled(prodVulnLevel, severity)
+		}
+		if failBuild {
+			return
 		}
 	}
 	return
