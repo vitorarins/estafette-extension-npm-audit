@@ -5,4 +5,6 @@ LABEL maintainer="estafette.io" \
 COPY ca-certificates.crt /etc/ssl/certs/
 COPY estafette-extension-npm-audit /
 
+ENV ESTAFETTE_LOG_FORMAT="console"
+
 ENTRYPOINT ["/estafette-extension-npm-audit"]

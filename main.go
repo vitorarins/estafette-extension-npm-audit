@@ -2,19 +2,25 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/alecthomas/kingpin"
-	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/alecthomas/kingpin"
+	foundation "github.com/estafette/estafette-foundation"
+	"github.com/logrusorgru/aurora"
+	"github.com/rs/zerolog/log"
 )
 
 var (
+	appgroup  string
+	app       string
 	version   string
 	branch    string
 	revision  string
@@ -50,24 +56,23 @@ func main() {
 	// parse command line parameters
 	kingpin.Parse()
 
-	// log to stdout and hide timestamp
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+	// init log format from envvar ESTAFETTE_LOG_FORMAT
+	foundation.InitLoggingFromEnv(appgroup, app, version, branch, revision, buildDate)
 
-	// log startup message
-	log.Printf("Starting estafette-extension-npm-audit version %v...", version)
+	// create context to cancel commands on sigterm
+	ctx := foundation.InitCancellationContext(context.Background())
 
 	// get slack webhook client
 	slackEnabled, slackWebhookClient := getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace)
 
 	prodVulnLevel, err := VulnLevel(*level)
 	if err != nil {
-		log.Println(err)
+		log.Info().Msg("Failed getting vulnerability level for production")
 	}
 
 	devVulnLevel, err := VulnLevel(*devLevel)
 	if err != nil {
-		log.Println(err)
+		log.Info().Msg("Failed getting vulnerability level for development")
 	}
 	switch *action {
 	case "audit":
@@ -78,17 +83,17 @@ func main() {
 		// action: audit
 
 		// audit repo
-		log.Printf("Auditing repo...\n")
-		auditReport, err := retryGetReport(devVulnLevel)
+		log.Info().Msg("Auditing repo...\n")
+		auditReport, err := retryGetReport(ctx, devVulnLevel)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("Failed running audit")
 		}
 
-		log.Printf("Checking %v dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.Dependencies, prodVulnLevel.String())
+		log.Info().Msgf("Checking %v dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.Dependencies, prodVulnLevel.String())
 		if devVulnLevel != None {
-			log.Printf("Checking %v dev dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.DevDependencies, devVulnLevel.String())
+			log.Info().Msgf("Checking %v dev dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.DevDependencies, devVulnLevel.String())
 		} else {
-			log.Printf("Not checking for vulnerabilities in dev dependencies")
+			log.Info().Msg("Not checking for vulnerabilities in dev dependencies")
 		}
 
 		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
@@ -97,9 +102,9 @@ func main() {
 			auditArgs := []string{
 				"audit",
 			}
-			reportString, err := retryCommand("npm", auditArgs)
+			reportString, err := retryCommand(ctx, "npm", auditArgs)
 
-			log.Println(reportString)
+			log.Info().Msg(reportString)
 
 			// also send report via Slack
 			if slackEnabled {
@@ -110,26 +115,27 @@ func main() {
 				for i := range channels {
 					err := slackWebhookClient.SendMessage(channels[i], title, titleLink, reportString)
 					if err != nil {
-						log.Printf("Sending status to Slack failed: %v", err)
+						log.Info().Msgf("Sending status to Slack failed: %v", err)
 					}
 				}
 			}
 			if failBuild {
-				log.Fatal(err)
+				log.Fatal().Msg("Failed checking vulnerabilities")
 			} else {
-				log.Println(err)
+				log.Info().Msgf("%v", err)
 			}
 		} else {
-			log.Println("No vulnerabilities in your repository for now. Cheers!")
+			log.Info().Msg("No vulnerabilities in your repository for now. Cheers!")
 		}
 	default:
-		log.Fatal("Set `action: <action>` on this step to audit.")
+		log.Fatal().Err(err).Msg("Set `action: <action>` on this step to audit.")
 	}
 }
 
-func runCommand(command string, args []string) (string, error) {
-	log.Printf("Running command '%v %v'...", command, strings.Join(args, " "))
-	cmd := exec.Command(command, args...)
+func runCommand(ctx context.Context, command string, args []string) (string, error) {
+	log.Debug().Msg(aurora.Sprintf(aurora.Gray(18, "> %v"), command))
+
+	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Dir = "/estafette-work"
 	var outb bytes.Buffer
 	cmd.Stdout = &outb
@@ -138,13 +144,13 @@ func runCommand(command string, args []string) (string, error) {
 	return outb.String(), err
 }
 
-func retryCommand(command string, args []string) (out string, err error) {
-	out, err = runCommand(command, args)
+func retryCommand(ctx context.Context, command string, args []string) (out string, err error) {
+	out, err = runCommand(ctx, command, args)
 	if out == "" && err != nil {
 		for i := 1; i <= 3; i++ {
 
 			time.Sleep(jitter(i) + 1*time.Microsecond)
-			out, err = runCommand(command, args)
+			out, err = runCommand(ctx, command, args)
 			if out != "" && err == nil {
 				return
 			}
@@ -153,7 +159,7 @@ func retryCommand(command string, args []string) (out string, err error) {
 	return
 }
 
-func retryGetReport(devVulnLevel Level) (auditReport AuditReportBody, err error) {
+func retryGetReport(ctx context.Context, devVulnLevel Level) (auditReport AuditReportBody, err error) {
 	auditArgs := []string{
 		"audit",
 		"--json",
@@ -162,7 +168,7 @@ func retryGetReport(devVulnLevel Level) (auditReport AuditReportBody, err error)
 		auditArgs = append(auditArgs, "--production")
 	}
 	var out string
-	out, err = runCommand("npm", auditArgs)
+	out, err = runCommand(ctx, "npm", auditArgs)
 
 	shouldRetry := false
 	if out == "" {
@@ -177,13 +183,13 @@ func retryGetReport(devVulnLevel Level) (auditReport AuditReportBody, err error)
 	if shouldRetry {
 		for i := 1; i <= 3; i++ {
 			time.Sleep(jitter(i) + 1*time.Microsecond)
-			out, err = runCommand("npm", auditArgs)
+			out, err = runCommand(ctx, "npm", auditArgs)
 			if out != "" {
 				auditReport = readAuditReport(out)
 				if auditReport.Error.Code == "" {
 					// if we get the output and got the report without errors, don't throw err
 					if err != nil {
-						log.Println(err)
+						log.Info().Msgf("%v", err)
 						err = nil
 					}
 					return
@@ -194,7 +200,7 @@ func retryGetReport(devVulnLevel Level) (auditReport AuditReportBody, err error)
 
 	// if we get the output and got the report without errors, don't throw err
 	if err != nil && auditReport.Error.Code == "" {
-		log.Println(err)
+		log.Info().Msgf("%v", err)
 		err = nil
 	}
 
@@ -222,7 +228,7 @@ func jitter(i int) time.Duration {
 func isCheckEnabled(level Level, levelString string) bool {
 	checkLevel, err := VulnLevel(levelString)
 	if err != nil {
-		log.Println(err)
+		log.Info().Msgf("%v", err)
 	}
 	return level <= checkLevel
 }
@@ -252,21 +258,21 @@ func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace *st
 		slackEnabled = true
 		var slackCredential *SlackCredentials
 		if *slackCredentialsJSON != "" && *slackWorkspace != "" {
-			log.Printf("Unmarshalling Slack credentials...")
+			log.Info().Msg("Unmarshalling Slack credentials...")
 			var slackCredentials []SlackCredentials
 			err := json.Unmarshal([]byte(*slackCredentialsJSON), &slackCredentials)
 			if err != nil {
-				log.Fatal("Failed unmarshalling Slack credentials: ", err)
+				log.Fatal().Err(err).Msg("Failed unmarshalling Slack credentials")
 			}
 
-			log.Printf("Checking if Slack credential %v exists...", *slackWorkspace)
+			log.Info().Msgf("Checking if Slack credential %v exists...", *slackWorkspace)
 			slackCredential = GetCredentialsByWorkspace(slackCredentials, *slackWorkspace)
 		} else {
-			log.Fatal("Flags credentials and workspace have to be set")
+			log.Fatal().Msg("Flags credentials and workspace have to be set")
 		}
 
 		if slackCredential == nil {
-			log.Fatalf("Credential with workspace %v does not exist.", *slackWorkspace)
+			log.Fatal().Msgf("Credential with workspace %v does not exist.", *slackWorkspace)
 		}
 		slackWebhook := slackCredential.AdditionalProperties.Webhook
 		slackWebhookClient = NewSlackWebhookClient(slackWebhook)
