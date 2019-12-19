@@ -32,6 +32,22 @@ stages:
     copy:
     - /etc/ssl/certs/ca-certificates.crt
 
+  check-container:
+    parallelStages:
+      check-efficiency:
+        image: extensions/docker:dev
+        action: dive
+        container: npm-audit
+        repositories:
+        - extensions
+
+      vulnerability-scan:
+        image: extensions/docker:dev
+        action: trivy
+        container: npm-audit
+        repositories:
+        - extensions
+
   push-to-docker-registry:
     image: extensions/docker:stable
     action: push
