@@ -237,7 +237,7 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 			for _, resolve := range action.Resolves {
 				if resolve.Id == advisory.Id {
 					devVulnerability = resolve.Dev
-					if action.Action == "update" {
+					if action.Action != "review" {
 						hasPatchableVulnerabilities = true
 					}
 				}

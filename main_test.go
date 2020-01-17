@@ -101,6 +101,26 @@ func TestAuditRepository(t *testing.T) {
 		assert.True(t, hasPatchableVulnerabilities)
 	})
 
+	t.Run("FailBuildIfVulnerabilityHasManualAction", func(t *testing.T) {
+
+		auditReport := AuditReportBody{
+			Actions: []Action{Action{"manual", "", []Resolve{Resolve{146, false}}}},
+			Advisories: map[int]Advisory{
+				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
+			},
+			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, 527, 39, 0, 566},
+		}
+
+		prodVulnLevel := Level(Low)
+		devVulnLevel := Level(Low)
+
+		// act
+		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+
+		assert.True(t, failBuild)
+		assert.True(t, hasPatchableVulnerabilities)
+	})
+
 	t.Run("DoNotFailBuildIfVulnerabilityHasReviewAction", func(t *testing.T) {
 
 		auditReport := AuditReportBody{
