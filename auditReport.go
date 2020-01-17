@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+
+	"github.com/rs/zerolog/log"
 )
 
 // AuditReportBody represents the body coming from npm audit
@@ -62,7 +63,7 @@ func readAuditReport(report string) AuditReportBody {
 	var auditReport AuditReportBody
 	err := json.Unmarshal([]byte(report), &auditReport)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal().Err(err).Msg("Failed unmarshalling audit report")
 	}
 	return auditReport
 }
