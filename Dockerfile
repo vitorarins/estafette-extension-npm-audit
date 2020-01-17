@@ -5,6 +5,12 @@ LABEL maintainer="estafette.io" \
 COPY ca-certificates.crt /etc/ssl/certs/
 COPY estafette-extension-npm-audit /
 
+RUN apk add --update --upgrade  --no-cache \
+      git \
+      bash \
+      openssl \
+    && rm -rf /var/cache/apk/*
+
 ENV ESTAFETTE_LOG_FORMAT="console"
 
 ENTRYPOINT ["/estafette-extension-npm-audit"]
