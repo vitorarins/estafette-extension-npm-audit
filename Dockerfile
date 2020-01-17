@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 FROM node:13.6.0-alpine
-=======
-FROM node:13.4.0-alpine
->>>>>>> origin/master
 LABEL maintainer="estafette.io" \
       description="The estafette-extension-npm-audit component is an Estafette extension to send build status updates to Slack for vulnerabilities in npm packages."
 
