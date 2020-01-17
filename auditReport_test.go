@@ -10,12 +10,37 @@ func TestReadAuditReport(t *testing.T) {
 	t.Run("ReadAuditReport", func(t *testing.T) {
 
 		testString := string(`{
+  "actions": [
+    {
+      "action": "review",
+      "module": "https-proxy-agent",
+      "resolves": [
+        {
+          "id": 146,
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 534,
+          "dev": true,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 550,
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    }
+  ],
   "advisories": {
     "146": {
       "findings": [
         {
           "version": "1.9.2",
-          "dev": false,
           "optional": false,
           "bundled": false
         }
@@ -27,7 +52,6 @@ func TestReadAuditReport(t *testing.T) {
       "findings": [
         {
           "version": "2.2.0",
-          "dev": true,
           "optional": false,
           "bundled": false
         }
@@ -39,7 +63,6 @@ func TestReadAuditReport(t *testing.T) {
       "findings": [
         {
           "version": "2.0.3",
-          "dev": false,
           "optional": false,
           "bundled": false
         }
@@ -71,21 +94,18 @@ func TestReadAuditReport(t *testing.T) {
 		assert.Equal(t, 146, auditReport.Advisories[146].Id)
 		assert.Equal(t, "moderate", auditReport.Advisories[146].Severity)
 		assert.Equal(t, "1.9.2", auditReport.Advisories[146].Findings[0].Version)
-		assert.Equal(t, false, auditReport.Advisories[146].Findings[0].Dev)
 		assert.Equal(t, false, auditReport.Advisories[146].Findings[0].Optional)
 		assert.Equal(t, false, auditReport.Advisories[146].Findings[0].Bundled)
 
 		assert.Equal(t, 534, auditReport.Advisories[534].Id)
 		assert.Equal(t, "critical", auditReport.Advisories[534].Severity)
 		assert.Equal(t, "2.2.0", auditReport.Advisories[534].Findings[0].Version)
-		assert.Equal(t, true, auditReport.Advisories[534].Findings[0].Dev)
 		assert.Equal(t, false, auditReport.Advisories[534].Findings[0].Optional)
 		assert.Equal(t, false, auditReport.Advisories[534].Findings[0].Bundled)
 
 		assert.Equal(t, 550, auditReport.Advisories[550].Id)
 		assert.Equal(t, "critical", auditReport.Advisories[550].Severity)
 		assert.Equal(t, "2.0.3", auditReport.Advisories[550].Findings[0].Version)
-		assert.Equal(t, false, auditReport.Advisories[550].Findings[0].Dev)
 		assert.Equal(t, false, auditReport.Advisories[550].Findings[0].Optional)
 		assert.Equal(t, false, auditReport.Advisories[550].Findings[0].Bundled)
 

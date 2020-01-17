@@ -2,14 +2,22 @@ package main
 
 import (
 	"encoding/json"
+
 	"github.com/rs/zerolog/log"
 )
 
 // AuditReportBody represents the body coming from npm audit
 type AuditReportBody struct {
+	Actions    []Action         `json:"actions,omitempty"`
 	Advisories map[int]Advisory `json:"advisories,omitempty"`
 	Metadata   Metadata         `json:"metadata,omitempty"`
 	Error      CommandError     `json:"error,omitempty"`
+}
+
+type Action struct {
+	Action   string    `json:"action,omitempty"`
+	Module   string    `json:"module,omitempty"`
+	Resolves []Resolve `json:"resolves,omitempty"`
 }
 
 type Advisory struct {
@@ -18,9 +26,13 @@ type Advisory struct {
 	Findings []Finding `json:"findings,omitempty"`
 }
 
+type Resolve struct {
+	Id  int  `json:"id,omitempty"`
+	Dev bool `json:"dev,omitempty"`
+}
+
 type Finding struct {
 	Version  string `json:"version,omitempty"`
-	Dev      bool   `json:"dev,omitempty"`
 	Optional bool   `json:"optional,omitempty"`
 	Bundled  bool   `json:"bundled,omitempty"`
 }

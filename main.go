@@ -233,14 +233,25 @@ func isCheckEnabled(level Level, levelString string) bool {
 	return level <= checkLevel
 }
 
-func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasVulnerabilities bool) {
+func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool) {
 	failBuild = false
-	hasVulnerabilities = false
+	hasPatchableVulnerabilities = false
 	for _, advisory := range auditReport.Advisories {
-		hasVulnerabilities = true
+		devVulnerability := false
 		severity := advisory.Severity
-		for _, finding := range advisory.Findings {
-			if finding.Dev {
+		for _, action := range auditReport.Actions {
+			for _, resolve := range action.Resolves {
+				if resolve.Id == advisory.Id {
+					devVulnerability = resolve.Dev
+					if action.Action != "review" {
+						hasPatchableVulnerabilities = true
+					}
+				}
+			}
+		}
+
+		if hasPatchableVulnerabilities {
+			if devVulnerability {
 				failBuild = isCheckEnabled(devVulnLevel, severity)
 			} else {
 				failBuild = isCheckEnabled(prodVulnLevel, severity)

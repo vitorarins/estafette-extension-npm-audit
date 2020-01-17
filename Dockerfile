@@ -1,9 +1,15 @@
-FROM node:13.4.0-alpine
+FROM node:13.6.0-alpine
 LABEL maintainer="estafette.io" \
       description="The estafette-extension-npm-audit component is an Estafette extension to send build status updates to Slack for vulnerabilities in npm packages."
 
 COPY ca-certificates.crt /etc/ssl/certs/
 COPY estafette-extension-npm-audit /
+
+RUN apk add --update --upgrade  --no-cache \
+      git \
+      bash \
+      openssl \
+    && rm -rf /var/cache/apk/*
 
 ENV ESTAFETTE_LOG_FORMAT="console"
 
