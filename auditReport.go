@@ -14,6 +14,7 @@ type AuditReportBody struct {
 }
 
 type Action struct {
+	Action   string    `json:"action,omitempty"`
 	Module   string    `json:"module,omitempty"`
 	Resolves []Resolve `json:"resolves,omitempty"`
 }
