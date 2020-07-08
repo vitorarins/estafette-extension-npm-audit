@@ -16,6 +16,7 @@ import (
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/logrusorgru/aurora"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -96,13 +97,16 @@ func main() {
 			log.Info().Msg("Not checking for vulnerabilities in dev dependencies")
 		}
 
-		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns, advisories := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		if hasVulns {
-			auditArgs := []string{
-				"audit",
-			}
-			reportString, err := retryCommand(ctx, "npm", auditArgs)
+
+			reportString := generateReport(advisories)
+
+			// auditArgs := []string{
+			// 	"audit",
+			// }
+			// reportString, err := retryCommand(ctx, "npm", auditArgs)
 
 			log.Info().Msg(reportString)
 
@@ -233,10 +237,12 @@ func isCheckEnabled(level Level, levelString string) bool {
 	return level <= checkLevel
 }
 
-func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool) {
+func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool, advisories []Advisory) {
+	advisories = []Advisory{}
 	failBuild = false
 	hasPatchableVulnerabilities = false
 	for _, advisory := range auditReport.Advisories {
+		hasVulnerability := false
 		devVulnerability := false
 		severity := advisory.Severity
 		for _, action := range auditReport.Actions {
@@ -252,12 +258,13 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 
 		if hasPatchableVulnerabilities {
 			if devVulnerability {
-				failBuild = isCheckEnabled(devVulnLevel, severity)
+				hasVulnerability = isCheckEnabled(devVulnLevel, severity)
 			} else {
-				failBuild = isCheckEnabled(prodVulnLevel, severity)
+				hasVulnerability = isCheckEnabled(prodVulnLevel, severity)
 			}
-			if failBuild {
-				return
+			if hasVulnerability {
+				advisories = append(advisories, advisory)
+				failBuild = true
 			}
 		}
 	}
@@ -290,4 +297,12 @@ func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace *st
 		return
 	}
 	return
+}
+
+func generateReport(advisories []Advisory) string {
+	output, err := yaml.Marshal(advisories)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed converting advisories into yaml")
+	}
+	return string(output)
 }
