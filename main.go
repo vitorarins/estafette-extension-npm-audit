@@ -99,10 +99,14 @@ func main() {
 
 			vulnerabilityCount := auditReport.VulnerabilityCount()
 			reportString := fmt.Sprintf("There's a total of %v vulnerabilities, not logging them individually; run `npm audit` locally to see them all", vulnerabilityCount)
-			if vulnerabilityCount < 25 {
-				reportString, err = retryCommand(ctx, "npm", []string{
+			if vulnerabilityCount < 100 {
+				auditArgs := []string{
 					"audit",
-				})
+				}
+				if devVulnLevel == None {
+					auditArgs = append(auditArgs, "--production")
+				}
+				reportString, err = retryCommand(ctx, "npm", auditArgs)
 			}
 			log.Info().Msg(reportString)
 
