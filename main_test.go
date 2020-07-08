@@ -40,7 +40,7 @@ func TestAuditRepository(t *testing.T) {
 
 		assert.True(t, failBuild)
 		assert.True(t, hasVulns)
-		assert.Equal(t, 2, len(advisories))
+		assert.Equal(t, 3, len(advisories))
 	})
 
 	t.Run("AuditRepositoryLowProdLowDev", func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestAuditRepository(t *testing.T) {
 
 		assert.True(t, failBuild)
 		assert.True(t, hasVulns)
-		assert.Equal(t, 1, len(advisories))
+		assert.Equal(t, 3, len(advisories))
 	})
 
 	t.Run("AuditRepositoryWithoutVulnerabilities", func(t *testing.T) {

@@ -102,12 +102,6 @@ func main() {
 		if hasVulns {
 
 			reportString := generateReport(advisories)
-
-			// auditArgs := []string{
-			// 	"audit",
-			// }
-			// reportString, err := retryCommand(ctx, "npm", auditArgs)
-
 			log.Info().Msg(reportString)
 
 			// also send report via Slack
@@ -257,13 +251,13 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 		}
 
 		if hasPatchableVulnerabilities {
+			advisories = append(advisories, advisory)
 			if devVulnerability {
 				hasVulnerability = isCheckEnabled(devVulnLevel, severity)
 			} else {
 				hasVulnerability = isCheckEnabled(prodVulnLevel, severity)
 			}
 			if hasVulnerability {
-				advisories = append(advisories, advisory)
 				failBuild = true
 			}
 		}
