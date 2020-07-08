@@ -36,11 +36,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(Critical)
 
 		// act
-		failBuild, hasVulns, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		assert.True(t, failBuild)
 		assert.True(t, hasVulns)
-		assert.Equal(t, 3, len(actions))
 	})
 
 	t.Run("AuditRepositoryLowProdLowDev", func(t *testing.T) {
@@ -49,11 +48,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(Low)
 
 		// act
-		failBuild, hasVulns, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		assert.True(t, failBuild)
 		assert.True(t, hasVulns)
-		assert.Equal(t, 3, len(actions))
 	})
 
 	t.Run("AuditRepositoryHighProdNoneDev", func(t *testing.T) {
@@ -62,11 +60,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(None)
 
 		// act
-		failBuild, hasVulns, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		assert.True(t, failBuild)
 		assert.True(t, hasVulns)
-		assert.Equal(t, 3, len(actions))
 	})
 
 	t.Run("AuditRepositoryWithoutVulnerabilities", func(t *testing.T) {
@@ -79,11 +76,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(None)
 
 		// act
-		failBuild, hasVulns, actions := checkVulnerabilities(auditReportNoVulns, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReportNoVulns, prodVulnLevel, devVulnLevel)
 
 		assert.False(t, failBuild)
 		assert.False(t, hasVulns)
-		assert.Equal(t, 0, len(actions))
 	})
 
 	t.Run("FailBuildIfVulnerabilityHasUpdateAction", func(t *testing.T) {
@@ -100,11 +96,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(Low)
 
 		// act
-		failBuild, hasPatchableVulnerabilities, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		assert.True(t, failBuild)
 		assert.True(t, hasPatchableVulnerabilities)
-		assert.Equal(t, 1, len(actions))
 	})
 
 	t.Run("FailBuildIfVulnerabilityHasManualAction", func(t *testing.T) {
@@ -121,11 +116,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(Low)
 
 		// act
-		failBuild, hasPatchableVulnerabilities, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		assert.True(t, failBuild)
 		assert.True(t, hasPatchableVulnerabilities)
-		assert.Equal(t, 1, len(actions))
 	})
 
 	t.Run("DoNotFailBuildIfVulnerabilityHasReviewAction", func(t *testing.T) {
@@ -142,11 +136,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := Level(Low)
 
 		// act
-		failBuild, hasPatchableVulnerabilities, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		assert.False(t, failBuild)
 		assert.False(t, hasPatchableVulnerabilities)
-		assert.Equal(t, 0, len(actions))
 	})
 }
 

@@ -1,20 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/alecthomas/kingpin"
 	foundation "github.com/estafette/estafette-foundation"
-	"github.com/logrusorgru/aurora"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
@@ -58,7 +54,7 @@ func main() {
 	kingpin.Parse()
 
 	// init log format from envvar ESTAFETTE_LOG_FORMAT
-	foundation.InitLoggingFromEnv(appgroup, app, version, branch, revision, buildDate)
+	foundation.InitLoggingFromEnv(foundation.NewApplicationInfo(appgroup, app, version, branch, revision, buildDate))
 
 	// create context to cancel commands on sigterm
 	ctx := foundation.InitCancellationContext(context.Background())
@@ -97,11 +93,17 @@ func main() {
 			log.Info().Msg("Not checking for vulnerabilities in dev dependencies")
 		}
 
-		failBuild, hasVulns, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		if hasVulns {
 
-			reportString := generateReport(actions)
+			vulnerabilityCount := auditReport.VulnerabilityCount()
+			reportString := fmt.Sprintf("There's a total of %v vulnerabilities, not logging them individually; run `npm audit` locally to see them all", vulnerabilityCount)
+			if vulnerabilityCount < 25 {
+				reportString, err = retryCommand(ctx, "npm", []string{
+					"audit",
+				})
+			}
 			log.Info().Msg(reportString)
 
 			// also send report via Slack
@@ -128,25 +130,13 @@ func main() {
 	}
 }
 
-func runCommand(ctx context.Context, command string, args []string) (string, error) {
-	log.Debug().Msg(aurora.Sprintf(aurora.Gray(18, "> %v"), command))
-
-	cmd := exec.CommandContext(ctx, command, args...)
-	cmd.Dir = "/estafette-work"
-	var outb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	return outb.String(), err
-}
-
 func retryCommand(ctx context.Context, command string, args []string) (out string, err error) {
-	out, err = runCommand(ctx, command, args)
+	out, err = foundation.GetCommandWithArgsOutput(ctx, command, args)
 	if out == "" && err != nil {
 		for i := 1; i <= 3; i++ {
 
 			time.Sleep(jitter(i) + 1*time.Microsecond)
-			out, err = runCommand(ctx, command, args)
+			out, err = foundation.GetCommandWithArgsOutput(ctx, command, args)
 			if out != "" && err == nil {
 				return
 			}
@@ -164,7 +154,7 @@ func retryGetReport(ctx context.Context, devVulnLevel Level) (auditReport AuditR
 		auditArgs = append(auditArgs, "--production")
 	}
 	var out string
-	out, err = runCommand(ctx, "npm", auditArgs)
+	out, err = foundation.GetCommandWithArgsOutput(ctx, "npm", auditArgs)
 
 	shouldRetry := false
 	if out == "" {
@@ -179,7 +169,7 @@ func retryGetReport(ctx context.Context, devVulnLevel Level) (auditReport AuditR
 	if shouldRetry {
 		for i := 1; i <= 3; i++ {
 			time.Sleep(jitter(i) + 1*time.Microsecond)
-			out, err = runCommand(ctx, "npm", auditArgs)
+			out, err = foundation.GetCommandWithArgsOutput(ctx, "npm", auditArgs)
 			if out != "" {
 				auditReport = readAuditReport(out)
 				if auditReport.Error.Code == "" {
@@ -229,12 +219,10 @@ func isCheckEnabled(level Level, levelString string) bool {
 	return level <= checkLevel
 }
 
-func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool, actions []Action) {
-	actions = []Action{}
+func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool) {
 	failBuild = false
 	hasPatchableVulnerabilities = false
 	for _, advisory := range auditReport.Advisories {
-		hasVulnerability := false
 		devVulnerability := false
 		severity := advisory.Severity
 		for _, action := range auditReport.Actions {
@@ -242,7 +230,6 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 				if resolve.Id == advisory.Id {
 					devVulnerability = resolve.Dev
 					if action.Action != "review" {
-						actions = append(actions, action)
 						hasPatchableVulnerabilities = true
 					}
 				}
@@ -251,12 +238,12 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 
 		if hasPatchableVulnerabilities {
 			if devVulnerability {
-				hasVulnerability = isCheckEnabled(devVulnLevel, severity)
+				failBuild = isCheckEnabled(devVulnLevel, severity)
 			} else {
-				hasVulnerability = isCheckEnabled(prodVulnLevel, severity)
+				failBuild = isCheckEnabled(prodVulnLevel, severity)
 			}
-			if hasVulnerability {
-				failBuild = true
+			if failBuild {
+				return
 			}
 		}
 	}

@@ -67,3 +67,7 @@ func readAuditReport(report string) AuditReportBody {
 	}
 	return auditReport
 }
+
+func (r AuditReportBody) VulnerabilityCount() int {
+	return r.Metadata.Vulnerabilities.Critical + r.Metadata.Vulnerabilities.High + r.Metadata.Vulnerabilities.Info + r.Metadata.Vulnerabilities.Low + r.Metadata.Vulnerabilities.Moderate
+}
