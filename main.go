@@ -97,11 +97,11 @@ func main() {
 			log.Info().Msg("Not checking for vulnerabilities in dev dependencies")
 		}
 
-		failBuild, hasVulns, advisories := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns, actions := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
 
 		if hasVulns {
 
-			reportString := generateReport(advisories)
+			reportString := generateReport(actions)
 			log.Info().Msg(reportString)
 
 			// also send report via Slack
@@ -119,8 +119,6 @@ func main() {
 			}
 			if failBuild {
 				log.Fatal().Msg("Failed checking vulnerabilities")
-			} else {
-				log.Info().Msgf("%v", err)
 			}
 		} else {
 			log.Info().Msg("No vulnerabilities in your repository for now. Cheers!")
@@ -231,8 +229,8 @@ func isCheckEnabled(level Level, levelString string) bool {
 	return level <= checkLevel
 }
 
-func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool, advisories []Advisory) {
-	advisories = []Advisory{}
+func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool, actions []Action) {
+	actions = []Action{}
 	failBuild = false
 	hasPatchableVulnerabilities = false
 	for _, advisory := range auditReport.Advisories {
@@ -244,6 +242,7 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 				if resolve.Id == advisory.Id {
 					devVulnerability = resolve.Dev
 					if action.Action != "review" {
+						actions = append(actions, action)
 						hasPatchableVulnerabilities = true
 					}
 				}
@@ -251,7 +250,6 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 		}
 
 		if hasPatchableVulnerabilities {
-			advisories = append(advisories, advisory)
 			if devVulnerability {
 				hasVulnerability = isCheckEnabled(devVulnLevel, severity)
 			} else {
@@ -293,10 +291,11 @@ func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace *st
 	return
 }
 
-func generateReport(advisories []Advisory) string {
-	output, err := yaml.Marshal(advisories)
+func generateReport(actions []Action) string {
+	output, err := yaml.Marshal(actions)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed converting advisories into yaml")
+		log.Fatal().Err(err).Msg("Failed converting actions into yaml")
 	}
+
 	return string(output)
 }
