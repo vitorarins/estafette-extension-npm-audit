@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"runtime"
 	"strings"
@@ -32,9 +33,9 @@ var (
 	devLevel = kingpin.Flag("dev-level", "Level of security you want to check for your Dev dependencies. It can be: low, moderate, high, critical or none.").Default("low").OverrideDefaultFromEnvar("ESTAFETTE_EXTENSION_DEV_LEVEL").String()
 
 	// slack flags
-	slackChannels        = kingpin.Flag("channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_CHANNELS").String()
-	slackWorkspace       = kingpin.Flag("workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_WORKSPACE").String()
-	slackCredentialsJSON = kingpin.Flag("credentials", "Slack credentials configured at server level, passed in to this trusted extension.").Envar("ESTAFETTE_CREDENTIALS_SLACK_WEBHOOK").String()
+	slackChannels            = kingpin.Flag("channels", "A comma-separated list of Slack channels to send build status to.").Envar("ESTAFETTE_EXTENSION_CHANNELS").String()
+	slackWorkspace           = kingpin.Flag("workspace", "A slack workspace.").Envar("ESTAFETTE_EXTENSION_WORKSPACE").String()
+	slackCredentialsJSONPath = kingpin.Flag("credentials-path", "Path to file with Slack credentials configured at server level, passed in to this trusted extension.").Default("/credentials/slack_webhook.json").String()
 
 	// git flags
 	gitRepoSource = kingpin.Flag("git-repo-source", "The source of the git repository, github.com in this case.").Envar("ESTAFETTE_GIT_SOURCE").Required().String()
@@ -60,7 +61,21 @@ func main() {
 	ctx := foundation.InitCancellationContext(context.Background())
 
 	// get slack webhook client
-	slackEnabled, slackWebhookClient := getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace)
+	// use mounted credential file if present instead of relying on an envvar
+	var slackCredentialsJSON string
+	if runtime.GOOS == "windows" {
+		*slackCredentialsJSONPath = "C:" + *slackCredentialsJSONPath
+	}
+	if foundation.FileExists(*slackCredentialsJSONPath) {
+		log.Info().Msgf("Reading credentials from file at path %v...", *slackCredentialsJSONPath)
+		credentialsFileContent, err := ioutil.ReadFile(*slackCredentialsJSONPath)
+		if err != nil {
+			log.Fatal().Msgf("Failed reading credential file at path %v.", *slackCredentialsJSONPath)
+		}
+		slackCredentialsJSON = string(credentialsFileContent)
+	}
+
+	slackEnabled, slackWebhookClient := getSlackIntegration(*slackChannels, slackCredentialsJSON, *slackWorkspace)
 
 	prodVulnLevel, err := VulnLevel(*level)
 	if err != nil {
@@ -254,26 +269,26 @@ func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLev
 	return
 }
 
-func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace *string) (slackEnabled bool, slackWebhookClient SlackWebhookClient) {
-	if *slackChannels != "" {
+func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace string) (slackEnabled bool, slackWebhookClient SlackWebhookClient) {
+	if slackChannels != "" {
 		slackEnabled = true
 		var slackCredential *SlackCredentials
-		if *slackCredentialsJSON != "" && *slackWorkspace != "" {
+		if slackCredentialsJSON != "" && slackWorkspace != "" {
 			log.Info().Msg("Unmarshalling Slack credentials...")
 			var slackCredentials []SlackCredentials
-			err := json.Unmarshal([]byte(*slackCredentialsJSON), &slackCredentials)
+			err := json.Unmarshal([]byte(slackCredentialsJSON), &slackCredentials)
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed unmarshalling Slack credentials")
 			}
 
-			log.Info().Msgf("Checking if Slack credential %v exists...", *slackWorkspace)
-			slackCredential = GetCredentialsByWorkspace(slackCredentials, *slackWorkspace)
+			log.Info().Msgf("Checking if Slack credential %v exists...", slackWorkspace)
+			slackCredential = GetCredentialsByWorkspace(slackCredentials, slackWorkspace)
 		} else {
 			log.Fatal().Msg("Flags credentials and workspace have to be set")
 		}
 
 		if slackCredential == nil {
-			log.Fatal().Msgf("Credential with workspace %v does not exist.", *slackWorkspace)
+			log.Fatal().Msgf("Credential with workspace %v does not exist.", slackWorkspace)
 		}
 		slackWebhook := slackCredential.AdditionalProperties.Webhook
 		slackWebhookClient = NewSlackWebhookClient(slackWebhook)

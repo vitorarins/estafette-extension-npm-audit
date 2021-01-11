@@ -157,7 +157,7 @@ func TestGetSlackClient(t *testing.T) {
 
 	t.Run("GetSlackIntegration", func(t *testing.T) {
 		// act
-		slackEnabled, slackWebhookClient := getSlackIntegration(&slackChannels, &slackCredentialsJSON, &slackWorkspace)
+		slackEnabled, slackWebhookClient := getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace)
 
 		assert.True(t, slackEnabled)
 		assert.NotNil(t, slackWebhookClient)
@@ -167,7 +167,7 @@ func TestGetSlackClient(t *testing.T) {
 		noChannels := ""
 
 		// act
-		slackEnabled, slackWebhookClient := getSlackIntegration(&noChannels, &slackCredentialsJSON, &slackWorkspace)
+		slackEnabled, slackWebhookClient := getSlackIntegration(noChannels, slackCredentialsJSON, slackWorkspace)
 
 		assert.False(t, slackEnabled)
 		assert.Nil(t, slackWebhookClient)
@@ -176,7 +176,7 @@ func TestGetSlackClient(t *testing.T) {
 	t.Run("GetSlackIntegrationNoWebhookURLWithCredentials", func(t *testing.T) {
 
 		// act
-		slackEnabled, slackWebhookClient := getSlackIntegration(&slackChannels, &slackCredentialsJSON, &slackWorkspace)
+		slackEnabled, slackWebhookClient := getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace)
 
 		assert.True(t, slackEnabled)
 		assert.NotNil(t, slackWebhookClient)
