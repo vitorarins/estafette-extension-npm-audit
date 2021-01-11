@@ -1,6 +1,7 @@
 # https://estafette.io/usage/manifest/#labels
 labels:
   app: estafette-extension-npm-audit
+  app-group: estafette-ci-extensions
   team: estafette-team
   language: golang
 
