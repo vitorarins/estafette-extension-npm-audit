@@ -82,7 +82,14 @@ func TestReadAuditReport(t *testing.T) {
       "high": 1,
       "critical": 2
     },
-    "dependencies": 391,
+    "dependencies": {
+      "prod": 53,
+      "dev": 338,
+      "optional": 84,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 391
+    },
     "devDependencies": 39,
     "optionalDependencies": 0,
     "totalDependencies": 430
@@ -118,7 +125,7 @@ func TestReadAuditReport(t *testing.T) {
 		assert.Equal(t, 1, auditReport.Metadata.Vulnerabilities.High)
 		assert.Equal(t, 2, auditReport.Metadata.Vulnerabilities.Critical)
 
-		assert.Equal(t, 391, auditReport.Metadata.Dependencies)
+		assert.Equal(t, 391, auditReport.Metadata.Dependencies.Total)
 		assert.Equal(t, 39, auditReport.Metadata.DevDependencies)
 		assert.Equal(t, 0, auditReport.Metadata.OptionalDependencies)
 		assert.Equal(t, 430, auditReport.Metadata.TotalDependencies)
