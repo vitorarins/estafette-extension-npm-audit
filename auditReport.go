@@ -39,7 +39,7 @@ type Finding struct {
 
 type Metadata struct {
 	Vulnerabilities      Vulnerabilities `json:"vulnerabilities,omitempty"`
-	Dependencies         int             `json:"dependencies,omitempty"`
+	Dependencies         Dependencies    `json:"dependencies,omitempty"`
 	DevDependencies      int             `json:"devDependencies,omitempty"`
 	OptionalDependencies int             `json:"optionalDependencies,omitempty"`
 	TotalDependencies    int             `json:"totalDependencies,omitempty"`
@@ -51,6 +51,15 @@ type Vulnerabilities struct {
 	Moderate int `json:"moderate,omitempty"`
 	High     int `json:"high,omitempty"`
 	Critical int `json:"critical,omitempty"`
+}
+
+type Dependencies struct {
+	Prod         int `json:"prod,omitempty"`
+	Dev          int `json:"dev,omitempty"`
+	Optional     int `json:"optional,omitempty"`
+	Peer         int `json:"peer,omitempty"`
+	PeerOptional int `json:"peerOptional,omitempty"`
+	Total        int `json:"total,omitempty"`
 }
 
 type CommandError struct {

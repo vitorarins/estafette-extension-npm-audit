@@ -1,8 +1,11 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
+	"encoding/json"
+	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReadAuditReport(t *testing.T) {
@@ -119,5 +122,20 @@ func TestReadAuditReport(t *testing.T) {
 		assert.Equal(t, 39, auditReport.Metadata.DevDependencies)
 		assert.Equal(t, 0, auditReport.Metadata.OptionalDependencies)
 		assert.Equal(t, 430, auditReport.Metadata.TotalDependencies)
+	})
+}
+
+func TestUnmarshal(t *testing.T) {
+
+	t.Run("ReadAuditReport", func(t *testing.T) {
+
+		data, err := ioutil.ReadFile("test-report.json")
+		assert.Nil(t, err)
+		var auditReportBody AuditReportBody
+
+		// act
+		err = json.Unmarshal(data, &auditReportBody)
+
+		assert.Nil(t, err)
 	})
 }

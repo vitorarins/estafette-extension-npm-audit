@@ -22,7 +22,7 @@ func TestAuditRepository(t *testing.T) {
 		550: Advisory{550, "critical", []Finding{finding550}},
 	}
 	vulnerabilities := Vulnerabilities{0, 1, 1, 0, 1}
-	metadata := Metadata{vulnerabilities, 527, 39, 0, 566}
+	metadata := Metadata{vulnerabilities, Dependencies{Total: 527}, 39, 0, 566}
 	var auditReport AuditReportBody
 	auditReport = AuditReportBody{
 		Actions:    actions,
@@ -89,7 +89,7 @@ func TestAuditRepository(t *testing.T) {
 			Advisories: map[int]Advisory{
 				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
 			},
-			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, 527, 39, 0, 566},
+			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, Dependencies{Total: 527}, 39, 0, 566},
 		}
 
 		prodVulnLevel := Level(Low)
@@ -109,7 +109,7 @@ func TestAuditRepository(t *testing.T) {
 			Advisories: map[int]Advisory{
 				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
 			},
-			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, 527, 39, 0, 566},
+			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, Dependencies{Total: 527}, 39, 0, 566},
 		}
 
 		prodVulnLevel := Level(Low)
@@ -129,7 +129,7 @@ func TestAuditRepository(t *testing.T) {
 			Advisories: map[int]Advisory{
 				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
 			},
-			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, 527, 39, 0, 566},
+			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, Dependencies{Total: 527}, 39, 0, 566},
 		}
 
 		prodVulnLevel := Level(Low)
