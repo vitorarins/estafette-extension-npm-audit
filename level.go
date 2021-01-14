@@ -11,30 +11,30 @@ var ErrInvalidVulnLevel = errors.New("invalid vulnerability level, falling back 
 type Level int
 
 const (
-	Low = iota
-	Moderate
-	High
-	Critical
-	None
+	LevelNone Level = iota
+	LevelLow
+	LevelModerate
+	LevelHigh
+	LevelCritical
 )
 
 var levelNames = []string{
+	"none",
 	"low",
 	"moderate",
 	"high",
 	"critical",
-	"none",
 }
 
 func (p Level) String() string {
 	return levelNames[p]
 }
 
-func VulnLevel(level string) (Level, error) {
+func ToLevel(level string) (Level, error) {
 	for i, name := range levelNames {
 		if strings.EqualFold(name, level) {
 			return Level(i), nil
 		}
 	}
-	return Low, ErrInvalidVulnLevel
+	return LevelLow, ErrInvalidVulnLevel
 }

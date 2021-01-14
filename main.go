@@ -13,7 +13,6 @@ import (
 	"github.com/alecthomas/kingpin"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -77,15 +76,16 @@ func main() {
 
 	slackEnabled, slackWebhookClient := getSlackIntegration(*slackChannels, slackCredentialsJSON, *slackWorkspace)
 
-	prodVulnLevel, err := VulnLevel(*level)
+	prodVulnLevel, err := ToLevel(*level)
 	if err != nil {
-		log.Info().Msg("Failed getting vulnerability level for production")
+		log.Fatal().Msg("Failed getting vulnerability level for production")
 	}
 
-	devVulnLevel, err := VulnLevel(*devLevel)
+	devVulnLevel, err := ToLevel(*devLevel)
 	if err != nil {
-		log.Info().Msg("Failed getting vulnerability level for development")
+		log.Fatal().Msg("Failed getting vulnerability level for development")
 	}
+
 	switch *action {
 	case "audit":
 
@@ -96,37 +96,45 @@ func main() {
 
 		// audit repo
 		log.Info().Msg("Auditing repo...\n")
-		auditReport, err := retryGetReport(ctx, devVulnLevel)
+		prodReport, devReport, err := getAuditReport(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed running audit")
 		}
 
-		log.Info().Msgf("Checking %v dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.Dependencies, prodVulnLevel.String())
-		if devVulnLevel != None {
-			log.Info().Msgf("Checking %v dev dependencies for vulnerabilities with severity higher or equal than %v", auditReport.Metadata.DevDependencies, devVulnLevel.String())
+		log.Info().Msgf("Checking %v prod dependencies for vulnerabilities with severity higher or equal than %v", prodReport.Metadata.Dependencies.Prod, prodVulnLevel.String())
+		if devVulnLevel != LevelNone {
+			log.Info().Msgf("Checking %v dev dependencies for vulnerabilities with severity higher or equal than %v", devReport.Metadata.Dependencies.Dev, devVulnLevel.String())
 		} else {
 			log.Info().Msg("Not checking for vulnerabilities in dev dependencies")
 		}
 
-		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasPatchableVulnerabilities, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed checking audit reports for vulnerabilities")
+		}
 
-		if hasVulns {
-
-			vulnerabilityCount := auditReport.VulnerabilityCount()
-			reportString := fmt.Sprintf("There's a total of %v vulnerabilities, not logging them individually; run `npm audit` locally to see them all", vulnerabilityCount)
-			if vulnerabilityCount < 100 {
-				auditArgs := []string{
-					"audit",
-				}
-				if devVulnLevel == None {
-					auditArgs = append(auditArgs, "--production")
-				}
-				reportString, err = retryCommand(ctx, "npm", auditArgs)
+		if hasPatchableVulnerabilities {
+			totalVulnerabilities := 0
+			if prodReport != nil {
+				totalVulnerabilities += prodReport.Metadata.Vulnerabilities.Total
 			}
+			if devReport != nil {
+				totalVulnerabilities += devReport.Metadata.Vulnerabilities.Total
+			}
+			reportString := ""
+			if totalVulnerabilities > 100 {
+				reportString = fmt.Sprintf("There's a total of %v vulnerabilities, not logging them individually; run `npm audit` locally to see them all", totalVulnerabilities)
+			} else {
+				reportString, err = getAuditReportForLogging(ctx, devVulnLevel)
+				if err != nil {
+					log.Fatal().Err(err).Msg("Failed running npm audit for logging / slack purposes")
+				}
+			}
+
 			log.Info().Msg(reportString)
 
-			// also send report via Slack
 			if slackEnabled {
+				// send regularly formatted audit report to slack
 				titleLink := fmt.Sprintf("https://%v/%v/%v", *gitRepoSource, *gitRepoOwner, *gitRepoName)
 				title := fmt.Sprintf("Vulnerabilities found in your repository: %v", *gitRepoName)
 				// split on comma and loop through channels
@@ -139,133 +147,127 @@ func main() {
 				}
 			}
 			if failBuild {
-				log.Fatal().Msg("Failed checking vulnerabilities")
+				log.Fatal().Msg("Failed due to vulnerabilities")
 			}
 		} else {
 			log.Info().Msg("No vulnerabilities in your repository for now. Cheers!")
 		}
+
 	default:
 		log.Fatal().Err(err).Msg("Set `action: <action>` on this step to audit.")
 	}
 }
 
-func retryCommand(ctx context.Context, command string, args []string) (out string, err error) {
-	out, err = foundation.GetCommandWithArgsOutput(ctx, command, args)
-	if out == "" && err != nil {
-		for i := 1; i <= 3; i++ {
+func getAuditReport(ctx context.Context) (prodReport *AuditReport, devReport *AuditReport, err error) {
 
-			time.Sleep(jitter(i) + 1*time.Microsecond)
-			out, err = foundation.GetCommandWithArgsOutput(ctx, command, args)
-			if out != "" && err == nil {
-				return
-			}
-		}
-	}
-	return
-}
-
-func retryGetReport(ctx context.Context, devVulnLevel Level) (auditReport AuditReportBody, err error) {
-	auditArgs := []string{
-		"audit",
-		"--json",
-	}
-	if devVulnLevel == None {
-		auditArgs = append(auditArgs, "--production")
-	}
-	var out string
-	out, err = foundation.GetCommandWithArgsOutput(ctx, "npm", auditArgs)
-
-	shouldRetry := false
-	if out == "" {
-		shouldRetry = true
-	} else {
-		auditReport = readAuditReport(out)
-		if auditReport.Error.Code != "" {
-			shouldRetry = true
-		}
-	}
-
-	if shouldRetry {
-		for i := 1; i <= 3; i++ {
-			time.Sleep(jitter(i) + 1*time.Microsecond)
-			out, err = foundation.GetCommandWithArgsOutput(ctx, "npm", auditArgs)
-			if out != "" {
-				auditReport = readAuditReport(out)
-				if auditReport.Error.Code == "" {
-					// if we get the output and got the report without errors, don't throw err
-					if err != nil {
-						log.Info().Msgf("%v", err)
-						err = nil
-					}
-					return
-				}
-			}
-		}
-	}
-
-	// if we get the output and got the report without errors, don't throw err
-	if err != nil && auditReport.Error.Code == "" {
-		log.Info().Msgf("%v", err)
-		err = nil
-	}
-
-	return
-}
-
-func jitter(i int) time.Duration {
-
-	i = int(1 << uint(i))
-	ms := i * 1000
-
-	maxJitter := ms / 3
-
-	// ms ± rand
-	ms += random.Intn(2*maxJitter) - maxJitter
-
-	// a jitter of 0 messes up the time.Tick chan
-	if ms <= 0 {
-		ms = 1
-	}
-
-	return time.Duration(ms) * time.Millisecond
-}
-
-func isCheckEnabled(level Level, levelString string) bool {
-	checkLevel, err := VulnLevel(levelString)
+	prodReport, err = getAuditReportCore(ctx, "--only=prod")
 	if err != nil {
-		log.Info().Msgf("%v", err)
+		return
 	}
-	return level <= checkLevel
+
+	devReport, err = getAuditReportCore(ctx, "--only=dev")
+	if err != nil {
+		return
+	}
+
+	return
 }
 
-func checkVulnerabilities(auditReport AuditReportBody, prodVulnLevel, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool) {
-	failBuild = false
-	hasPatchableVulnerabilities = false
-	for _, advisory := range auditReport.Advisories {
-		devVulnerability := false
-		severity := advisory.Severity
-		for _, action := range auditReport.Actions {
-			for _, resolve := range action.Resolves {
-				if resolve.Id == advisory.Id {
-					devVulnerability = resolve.Dev
-					if action.Action != "review" {
-						hasPatchableVulnerabilities = true
-					}
-				}
-			}
+func getAuditReportCore(ctx context.Context, only string) (auditReport *AuditReport, err error) {
+
+	err = foundation.Retry(func() (retryErr error) {
+		output, retryErr := foundation.GetCommandWithArgsOutput(ctx, "npm", []string{"audit", "--json", only})
+		if retryErr != nil {
+			return
+		}
+		if output == "" {
+			return fmt.Errorf("Output of 'npm audit --json %v' is empty", only)
 		}
 
-		if hasPatchableVulnerabilities {
-			if devVulnerability {
-				failBuild = isCheckEnabled(devVulnLevel, severity)
-			} else {
-				failBuild = isCheckEnabled(prodVulnLevel, severity)
-			}
-			if failBuild {
-				return
-			}
+		retryErr = json.Unmarshal([]byte(output), &auditReport)
+		if retryErr != nil {
+			return
+		}
+		if auditReport.Error.Code != "" {
+			return fmt.Errorf("Output of 'npm audit --json %v' contains error: %v", only, auditReport.Error)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func checkVulnerabilities(prodReport *AuditReport, prodVulnLevel Level, devReport *AuditReport, devVulnLevel Level) (failBuild, hasPatchableVulnerabilities bool, err error) {
+
+	prodFailBuild, prodHasPatchableVulnerabilities, prodErr := checkVulnerabilitiesCore(prodReport, prodVulnLevel)
+	if prodErr != nil {
+		return failBuild, hasPatchableVulnerabilities, prodErr
+	}
+
+	devFailBuild, devHasPatchableVulnerabilities, devErr := checkVulnerabilitiesCore(devReport, devVulnLevel)
+	if prodErr != nil {
+		return failBuild, hasPatchableVulnerabilities, devErr
+	}
+
+	failBuild = prodFailBuild || devFailBuild
+	hasPatchableVulnerabilities = prodHasPatchableVulnerabilities || devHasPatchableVulnerabilities
+
+	return
+}
+
+func checkVulnerabilitiesCore(report *AuditReport, vulnLevel Level) (failBuild, hasPatchableVulnerabilities bool, err error) {
+	if report == nil {
+		return failBuild, hasPatchableVulnerabilities, fmt.Errorf("Report is nil")
+	}
+
+	for _, v := range report.Vulnerabilities {
+		if !v.FixAvailable {
+			continue
+		}
+
+		hasPatchableVulnerabilities = true
+		if vulnLevel == LevelNone {
+			continue
+		}
+
+		lvl, innerErr := ToLevel(v.Severity)
+		if innerErr != nil {
+			return failBuild, hasPatchableVulnerabilities, innerErr
+		}
+		if lvl >= vulnLevel {
+			failBuild = true
 		}
 	}
+
+	return
+}
+
+func getAuditReportForLogging(ctx context.Context, devVulnLevel Level) (reportString string, err error) {
+
+	auditArgs := []string{"audit"}
+	if devVulnLevel == LevelNone {
+		auditArgs = append(auditArgs, "--only=prod")
+	}
+
+	err = foundation.Retry(func() (retryErr error) {
+		reportString, retryErr = foundation.GetCommandWithArgsOutput(ctx, "npm", auditArgs)
+		if retryErr != nil {
+			return
+		}
+		if reportString == "" {
+			return fmt.Errorf("Output of 'npm %v' is empty", strings.Join(auditArgs, " "))
+		}
+
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
 	return
 }
 
@@ -295,13 +297,4 @@ func getSlackIntegration(slackChannels, slackCredentialsJSON, slackWorkspace str
 		return
 	}
 	return
-}
-
-func generateReport(actions []Action) string {
-	output, err := yaml.Marshal(actions)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed converting actions into yaml")
-	}
-
-	return string(output)
 }

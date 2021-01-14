@@ -7,139 +7,187 @@ import (
 )
 
 func TestAuditRepository(t *testing.T) {
+	t.Run("FailBuildIfProdReportHasFixableVulnerabilitiesOfProdLevel", func(t *testing.T) {
 
-	finding146 := Finding{"1.9.2", false, false}
-	finding534 := Finding{"2.2.0", false, false}
-	finding550 := Finding{"2.0.3", false, false}
-	resolve146 := Resolve{146, false}
-	resolve534 := Resolve{534, true}
-	resolve550 := Resolve{550, false}
-	resolves := []Resolve{resolve146, resolve534, resolve550}
-	actions := []Action{Action{"update", "", resolves}}
-	advisories := map[int]Advisory{
-		146: Advisory{146, "moderate", []Finding{finding146}},
-		534: Advisory{534, "low", []Finding{finding534}},
-		550: Advisory{550, "critical", []Finding{finding550}},
-	}
-	vulnerabilities := Vulnerabilities{0, 1, 1, 0, 1}
-	metadata := Metadata{vulnerabilities, Dependencies{Total: 527}, 39, 0, 566}
-	var auditReport AuditReportBody
-	auditReport = AuditReportBody{
-		Actions:    actions,
-		Advisories: advisories,
-		Metadata:   metadata,
-	}
-
-	t.Run("AuditRepositoryLowProdCriticalDev", func(t *testing.T) {
-
-		prodVulnLevel := Level(Low)
-		devVulnLevel := Level(Critical)
-
-		// act
-		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
-
-		assert.True(t, failBuild)
-		assert.True(t, hasVulns)
-	})
-
-	t.Run("AuditRepositoryLowProdLowDev", func(t *testing.T) {
-
-		prodVulnLevel := Level(Low)
-		devVulnLevel := Level(Low)
-
-		// act
-		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
-
-		assert.True(t, failBuild)
-		assert.True(t, hasVulns)
-	})
-
-	t.Run("AuditRepositoryHighProdNoneDev", func(t *testing.T) {
-
-		prodVulnLevel := Level(Critical)
-		devVulnLevel := Level(None)
-
-		// act
-		failBuild, hasVulns := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
-
-		assert.True(t, failBuild)
-		assert.True(t, hasVulns)
-	})
-
-	t.Run("AuditRepositoryWithoutVulnerabilities", func(t *testing.T) {
-
-		auditReportNoVulns := AuditReportBody{
-			Advisories: map[int]Advisory{},
-			Metadata:   Metadata{},
+		prodVulnLevel := LevelLow
+		prodReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "moderate",
+					FixAvailable: true,
+				},
+			},
 		}
-		prodVulnLevel := Level(Low)
-		devVulnLevel := Level(None)
+
+		devVulnLevel := LevelNone
+		devReport := &AuditReport{}
 
 		// act
-		failBuild, hasVulns := checkVulnerabilities(auditReportNoVulns, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
 
+		assert.Nil(t, err)
+		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("FailBuildIfProdReportHasFixableVulnerabilitiesHigherThanProdLevel", func(t *testing.T) {
+
+		prodVulnLevel := LevelHigh
+		prodReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "critical",
+					FixAvailable: true,
+				},
+			},
+		}
+
+		devVulnLevel := LevelNone
+		devReport := &AuditReport{}
+
+		// act
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+
+		assert.Nil(t, err)
+		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("DoNotFailBuildIfProdReportHasNoFixableVulnerabilitiesEvenIfItsOfProdLevel", func(t *testing.T) {
+
+		prodVulnLevel := LevelLow
+		prodReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "moderate",
+					FixAvailable: false,
+				},
+			},
+		}
+
+		devVulnLevel := LevelNone
+		devReport := &AuditReport{}
+
+		// act
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+
+		assert.Nil(t, err)
 		assert.False(t, failBuild)
 		assert.False(t, hasVulns)
 	})
 
-	t.Run("FailBuildIfVulnerabilityHasUpdateAction", func(t *testing.T) {
+	t.Run("DoNotFailBuildIfProdReportHasVulnerabilitiesLowerThanProdLevel", func(t *testing.T) {
 
-		auditReport := AuditReportBody{
-			Actions: []Action{Action{"update", "", []Resolve{Resolve{146, false}}}},
-			Advisories: map[int]Advisory{
-				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
+		prodVulnLevel := LevelHigh
+		prodReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "moderate",
+					FixAvailable: true,
+				},
 			},
-			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, Dependencies{Total: 527}, 39, 0, 566},
 		}
 
-		prodVulnLevel := Level(Low)
-		devVulnLevel := Level(Low)
+		devVulnLevel := LevelNone
+		devReport := &AuditReport{}
 
 		// act
-		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
 
-		assert.True(t, failBuild)
-		assert.True(t, hasPatchableVulnerabilities)
-	})
-
-	t.Run("FailBuildIfVulnerabilityHasManualAction", func(t *testing.T) {
-
-		auditReport := AuditReportBody{
-			Actions: []Action{Action{"manual", "", []Resolve{Resolve{146, false}}}},
-			Advisories: map[int]Advisory{
-				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
-			},
-			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, Dependencies{Total: 527}, 39, 0, 566},
-		}
-
-		prodVulnLevel := Level(Low)
-		devVulnLevel := Level(Low)
-
-		// act
-		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
-
-		assert.True(t, failBuild)
-		assert.True(t, hasPatchableVulnerabilities)
-	})
-
-	t.Run("DoNotFailBuildIfVulnerabilityHasReviewAction", func(t *testing.T) {
-
-		auditReport := AuditReportBody{
-			Actions: []Action{Action{"review", "", []Resolve{Resolve{146, false}}}},
-			Advisories: map[int]Advisory{
-				146: Advisory{146, "cricitcal", []Finding{Finding{"1.9.2", false, false}}},
-			},
-			Metadata: Metadata{Vulnerabilities{0, 0, 0, 0, 1}, Dependencies{Total: 527}, 39, 0, 566},
-		}
-
-		prodVulnLevel := Level(Low)
-		devVulnLevel := Level(Low)
-
-		// act
-		failBuild, hasPatchableVulnerabilities := checkVulnerabilities(auditReport, prodVulnLevel, devVulnLevel)
-
+		assert.Nil(t, err)
 		assert.False(t, failBuild)
-		assert.False(t, hasPatchableVulnerabilities)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("FailBuildIfDevReportHasFixableVulnerabilitiesOfDevLevel", func(t *testing.T) {
+
+		prodVulnLevel := LevelNone
+		prodReport := &AuditReport{}
+
+		devVulnLevel := LevelLow
+		devReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "moderate",
+					FixAvailable: true,
+				},
+			},
+		}
+
+		// act
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+
+		assert.Nil(t, err)
+		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("FailBuildIfDevReportHasFixableVulnerabilitiesHigherThanDevLevel", func(t *testing.T) {
+
+		prodVulnLevel := LevelNone
+		prodReport := &AuditReport{}
+
+		devVulnLevel := LevelHigh
+		devReport := &AuditReport{Vulnerabilities: map[string]Vulnerability{
+			"ini": {
+				Severity:     "critical",
+				FixAvailable: true,
+			},
+		},
+		}
+
+		// act
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+
+		assert.Nil(t, err)
+		assert.True(t, failBuild)
+		assert.True(t, hasVulns)
+	})
+
+	t.Run("DoNotFailBuildIfDevReportHasNoFixableVulnerabilitiesEvenIfItsOfDevLevel", func(t *testing.T) {
+
+		prodVulnLevel := LevelNone
+		prodReport := &AuditReport{}
+
+		devVulnLevel := LevelLow
+		devReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "moderate",
+					FixAvailable: false,
+				},
+			},
+		}
+
+		// act
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+
+		assert.Nil(t, err)
+		assert.False(t, failBuild)
+		assert.False(t, hasVulns)
+	})
+
+	t.Run("DoNotFailBuildIfDevReportHasVulnerabilitiesLowerThanDevLevel", func(t *testing.T) {
+
+		prodVulnLevel := LevelNone
+		prodReport := &AuditReport{}
+
+		devVulnLevel := LevelHigh
+		devReport := &AuditReport{
+			Vulnerabilities: map[string]Vulnerability{
+				"ini": {
+					Severity:     "moderate",
+					FixAvailable: true,
+				},
+			},
+		}
+
+		// act
+		failBuild, hasVulns, err := checkVulnerabilities(prodReport, prodVulnLevel, devReport, devVulnLevel)
+
+		assert.Nil(t, err)
+		assert.False(t, failBuild)
+		assert.True(t, hasVulns)
 	})
 }
 
