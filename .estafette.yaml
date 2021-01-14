@@ -49,6 +49,12 @@ stages:
         repositories:
         - extensions
 
+      test:
+        image: extensions/npm-audit:${ESTAFETTE_BUILD_VERSION}
+        action: audit
+        level: critical
+        dev-level: critical
+
   push-to-docker-registry:
     image: extensions/docker:dev
     action: push

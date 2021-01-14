@@ -25,30 +25,32 @@ func TestUnmarshalAuditReport(t *testing.T) {
 		assert.Equal(t, 2, auditReport.AuditReportVersion)
 		assert.Equal(t, 7, len(auditReport.Vulnerabilities))
 
-		assert.Equal(t, "@lhci/cli", auditReport.Vulnerabilities["@lhci/cli"].Name)
 		assert.Equal(t, "low", auditReport.Vulnerabilities["@lhci/cli"].Severity)
 		lvl, innerErr := ToLevel(auditReport.Vulnerabilities["@lhci/cli"].Severity)
 		assert.Nil(t, innerErr)
 		assert.Equal(t, LevelLow, lvl)
 		assert.True(t, auditReport.Vulnerabilities["@lhci/cli"].FixAvailable.FixAvailable)
 
-		assert.Equal(t, "@lhci/utils", auditReport.Vulnerabilities["@lhci/utils"].Name)
 		assert.Equal(t, "low", auditReport.Vulnerabilities["@lhci/utils"].Severity)
 		lvl, innerErr = ToLevel(auditReport.Vulnerabilities["@lhci/utils"].Severity)
 		assert.Nil(t, innerErr)
 		assert.Equal(t, LevelLow, lvl)
 		assert.True(t, auditReport.Vulnerabilities["@lhci/utils"].FixAvailable.FixAvailable)
 
-		assert.Equal(t, "@xivart/tangram", auditReport.Vulnerabilities["@xivart/tangram"].Name)
 		assert.Equal(t, "low", auditReport.Vulnerabilities["@xivart/tangram"].Severity)
 		lvl, innerErr = ToLevel(auditReport.Vulnerabilities["@xivart/tangram"].Severity)
 		assert.Nil(t, innerErr)
 		assert.Equal(t, LevelLow, lvl)
 		assert.False(t, auditReport.Vulnerabilities["@xivart/tangram"].FixAvailable.FixAvailable)
 
+		assert.Equal(t, "low", auditReport.Vulnerabilities["isomorphic-fetch"].Severity)
+		lvl, innerErr = ToLevel(auditReport.Vulnerabilities["isomorphic-fetch"].Severity)
+		assert.Nil(t, innerErr)
+		assert.Equal(t, LevelLow, lvl)
+		assert.False(t, auditReport.Vulnerabilities["isomorphic-fetch"].FixAvailable.FixAvailable)
+
 		assert.Equal(t, 7, auditReport.Metadata.Vulnerabilities.Total)
 		assert.Equal(t, 535, auditReport.Metadata.Dependencies.Prod)
 		assert.Equal(t, 3237, auditReport.Metadata.Dependencies.Dev)
-		assert.Equal(t, 4099, auditReport.Metadata.Dependencies.Total)
 	})
 }

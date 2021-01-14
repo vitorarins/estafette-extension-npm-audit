@@ -11,9 +11,8 @@ type AuditReport struct {
 }
 
 type Vulnerability struct {
-	Name         string                          `json:"name,omitempty"`
-	Severity     string                          `json:"severity,omitempty"`
-	FixAvailable BoolOrVulnerabilityFixAvailable `json:"fixAvailable,omitempty"`
+	Severity     string                    `json:"severity,omitempty"`
+	FixAvailable VulnerabilityFixAvailable `json:"fixAvailable,omitempty"`
 }
 
 type Metadata struct {
@@ -26,9 +25,8 @@ type MetadataVulnerabilities struct {
 }
 
 type MetadataDependencies struct {
-	Prod  int `json:"prod,omitempty"`
-	Dev   int `json:"dev,omitempty"`
-	Total int `json:"total,omitempty"`
+	Prod int `json:"prod,omitempty"`
+	Dev  int `json:"dev,omitempty"`
 }
 
 type CommandError struct {
@@ -38,11 +36,11 @@ type CommandError struct {
 }
 
 // StringOrStringArray is used to unmarshal/marshal either a single string value or a string array
-type BoolOrVulnerabilityFixAvailable struct {
+type VulnerabilityFixAvailable struct {
 	FixAvailable bool
 }
 
-func (b *BoolOrVulnerabilityFixAvailable) UnmarshalJSON(data []byte) error {
+func (b *VulnerabilityFixAvailable) UnmarshalJSON(data []byte) error {
 
 	var asBool bool
 	err := json.Unmarshal(data, &asBool)
@@ -53,9 +51,7 @@ func (b *BoolOrVulnerabilityFixAvailable) UnmarshalJSON(data []byte) error {
 	}
 
 	var aux struct {
-		Name          string `json:"name,omitempty"`
-		Version       string `json:"version,omitempty"`
-		IsSemVerMajor bool   `json:"isSemVerMajor,omitempty"`
+		Name string `json:"name,omitempty"`
 	}
 	err = json.Unmarshal(data, &aux)
 	if err == nil {

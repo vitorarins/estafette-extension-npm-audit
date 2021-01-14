@@ -59,11 +59,7 @@
       "nodes": [
         "node_modules/isomorphic-fetch"
       ],
-      "fixAvailable": {
-        "name": "@lhci/cli",
-        "version": "0.2.0",
-        "isSemVerMajor": true
-      }
+      "fixAvailable": false
     },
     "node-fetch": {
       "name": "node-fetch",

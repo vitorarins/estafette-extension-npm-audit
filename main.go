@@ -194,6 +194,10 @@ func getAuditReportCore(ctx context.Context, only string) (auditReport *AuditRep
 		return
 	}
 
+	if auditReport.AuditReportVersion != 2 {
+		return auditReport, fmt.Errorf("auditReportVersion is not equal to 2, check if the json structure has any breaking changes")
+	}
+
 	return
 }
 
