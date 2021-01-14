@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/alecthomas/kingpin"
 	foundation "github.com/estafette/estafette-foundation"
@@ -41,12 +39,6 @@ var (
 	gitRepoOwner  = kingpin.Flag("git-repo-owner", "The owner of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_OWNER").Required().String()
 	gitRepoName   = kingpin.Flag("git-repo-name", "The repo name of the Github/Bitbucket repository.").Envar("ESTAFETTE_GIT_NAME").Required().String()
 )
-
-var random *rand.Rand
-
-func init() {
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 func main() {
 
@@ -93,6 +85,10 @@ func main() {
 
 		// image: extensions/npm-audit:stable
 		// action: audit
+
+		if prodVulnLevel == LevelNone {
+			log.Fatal().Msg("level: none is not allowed, needs to be one of low, moderate, high or critical")
+		}
 
 		// audit repo
 		log.Info().Msg("Auditing repo...\n")
