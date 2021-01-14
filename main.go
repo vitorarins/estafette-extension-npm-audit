@@ -221,7 +221,7 @@ func checkVulnerabilitiesCore(report *AuditReport, vulnLevel Level) (failBuild, 
 	}
 
 	for _, v := range report.Vulnerabilities {
-		if !v.FixAvailable {
+		if !v.FixAvailable.FixAvailable {
 			continue
 		}
 

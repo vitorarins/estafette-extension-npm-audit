@@ -1,44 +1,163 @@
 {
   "auditReportVersion": 2,
   "vulnerabilities": {
-    "ini": {
-      "name": "ini",
+    "@lhci/cli": {
+      "name": "@lhci/cli",
+      "severity": "low",
+      "via": [
+        "isomorphic-fetch",
+        "yargs",
+        "yargs-parser"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/@lhci/cli"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.2.0",
+        "isSemVerMajor": true
+      }
+    },
+    "@lhci/utils": {
+      "name": "@lhci/utils",
+      "severity": "low",
+      "via": [
+        "isomorphic-fetch"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/@lhci/utils"
+      ],
+      "fixAvailable": true
+    },
+    "@xivart/tangram": {
+      "name": "@xivart/tangram",
+      "severity": "low",
+      "via": [
+        "node-fetch"
+      ],
+      "effects": [],
+      "range": "<=0.0.0-test-checkbox.0 || >=1.24.1",
+      "nodes": [
+        "node_modules/@xivart/tangram"
+      ]
+    },
+    "isomorphic-fetch": {
+      "name": "isomorphic-fetch",
+      "severity": "low",
+      "via": [
+        "node-fetch"
+      ],
+      "effects": [
+        "@lhci/cli",
+        "@lhci/utils"
+      ],
+      "range": "2.0.0 - 2.2.1",
+      "nodes": [
+        "node_modules/isomorphic-fetch"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.2.0",
+        "isSemVerMajor": true
+      }
+    },
+    "node-fetch": {
+      "name": "node-fetch",
       "severity": "low",
       "via": [
         {
-          "source": 1589,
-          "name": "ini",
-          "dependency": "ini",
-          "title": "Prototype Pollution",
-          "url": "https://npmjs.com/advisories/1589",
+          "source": 1556,
+          "name": "node-fetch",
+          "dependency": "node-fetch",
+          "title": "Denial of Service",
+          "url": "https://npmjs.com/advisories/1556",
           "severity": "low",
-          "range": "<1.3.6"
+          "range": "< 2.6.1 || >= 3.0.0-beta.1 < 3.0.0-beta.9"
         }
       ],
-      "effects": [],
-      "range": "<1.3.6",
-      "nodes": [
-        "node_modules/fsevents/node_modules/ini"
+      "effects": [
+        "@xivart/tangram",
+        "isomorphic-fetch"
       ],
-      "fixAvailable": true
+      "range": "<=2.6.0 || 3.0.0-beta.1 - 3.0.0-beta.8",
+      "nodes": [
+        "node_modules/@xivart/tangram/node_modules/node-fetch",
+        "node_modules/isomorphic-fetch/node_modules/node-fetch"
+      ],
+      "fixAvailable": {
+        "name": "@xivart/tangram",
+        "version": "1.24.0",
+        "isSemVerMajor": true
+      }
+    },
+    "yargs": {
+      "name": "yargs",
+      "severity": "low",
+      "via": [
+        "yargs-parser"
+      ],
+      "effects": [
+        "@lhci/cli"
+      ],
+      "range": "4.0.0-alpha1 - 12.0.5 || 14.1.0 || 15.0.0 - 15.2.0",
+      "nodes": [
+        "node_modules/@lhci/cli/node_modules/yargs"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.2.0",
+        "isSemVerMajor": true
+      }
+    },
+    "yargs-parser": {
+      "name": "yargs-parser",
+      "severity": "low",
+      "via": [
+        {
+          "source": 1500,
+          "name": "yargs-parser",
+          "dependency": "yargs-parser",
+          "title": "Prototype Pollution",
+          "url": "https://npmjs.com/advisories/1500",
+          "severity": "low",
+          "range": "<13.1.2 || >=14.0.0 <15.0.1 || >=16.0.0 <18.1.2"
+        }
+      ],
+      "effects": [
+        "@lhci/cli",
+        "yargs"
+      ],
+      "range": "<=13.1.1 || 14.0.0 - 15.0.0 || 16.0.0 - 18.1.1",
+      "nodes": [
+        "node_modules/@lhci/cli/node_modules/yargs-parser"
+      ],
+      "fixAvailable": {
+        "name": "@lhci/cli",
+        "version": "0.2.0",
+        "isSemVerMajor": true
+      }
     }
   },
   "metadata": {
     "vulnerabilities": {
       "info": 0,
-      "low": 1,
+      "low": 7,
       "moderate": 0,
       "high": 0,
       "critical": 0,
-      "total": 1
+      "total": 7
     },
     "dependencies": {
-      "prod": 53,
-      "dev": 1288,
-      "optional": 84,
-      "peer": 0,
+      "prod": 535,
+      "dev": 3237,
+      "optional": 433,
+      "peer": 1,
       "peerOptional": 0,
-      "total": 1341
+      "total": 4099
     }
   }
 }

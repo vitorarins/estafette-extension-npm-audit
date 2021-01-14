@@ -13,8 +13,10 @@ func TestAuditRepository(t *testing.T) {
 		prodReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "moderate",
-					FixAvailable: true,
+					Severity: "moderate",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: true,
+					},
 				},
 			},
 		}
@@ -36,8 +38,10 @@ func TestAuditRepository(t *testing.T) {
 		prodReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "critical",
-					FixAvailable: true,
+					Severity: "critical",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: true,
+					},
 				},
 			},
 		}
@@ -59,8 +63,10 @@ func TestAuditRepository(t *testing.T) {
 		prodReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "moderate",
-					FixAvailable: false,
+					Severity: "moderate",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: false,
+					},
 				},
 			},
 		}
@@ -82,8 +88,10 @@ func TestAuditRepository(t *testing.T) {
 		prodReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "moderate",
-					FixAvailable: true,
+					Severity: "moderate",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: true,
+					},
 				},
 			},
 		}
@@ -108,8 +116,10 @@ func TestAuditRepository(t *testing.T) {
 		devReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "moderate",
-					FixAvailable: true,
+					Severity: "moderate",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: true,
+					},
 				},
 			},
 		}
@@ -130,8 +140,10 @@ func TestAuditRepository(t *testing.T) {
 		devVulnLevel := LevelHigh
 		devReport := &AuditReport{Vulnerabilities: map[string]Vulnerability{
 			"ini": {
-				Severity:     "critical",
-				FixAvailable: true,
+				Severity: "critical",
+				FixAvailable: BoolOrVulnerabilityFixAvailable{
+					FixAvailable: true,
+				},
 			},
 		},
 		}
@@ -153,8 +165,10 @@ func TestAuditRepository(t *testing.T) {
 		devReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "moderate",
-					FixAvailable: false,
+					Severity: "moderate",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: false,
+					},
 				},
 			},
 		}
@@ -176,8 +190,10 @@ func TestAuditRepository(t *testing.T) {
 		devReport := &AuditReport{
 			Vulnerabilities: map[string]Vulnerability{
 				"ini": {
-					Severity:     "moderate",
-					FixAvailable: true,
+					Severity: "moderate",
+					FixAvailable: BoolOrVulnerabilityFixAvailable{
+						FixAvailable: true,
+					},
 				},
 			},
 		}
