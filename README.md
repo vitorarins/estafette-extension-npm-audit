@@ -31,7 +31,6 @@ For now the only supported action is `audit`
 This is the level you set to check for the vulnerabilities in the `dependencies` from your `package.json`.
 
 Possible values are:
- - `none`
  - `low`
  - `moderate`
  - `high`
@@ -50,6 +49,8 @@ If audit doesn't find any vulnerabilities, then you get no Slack message and you
 
 ### Dev-level
 This is the same as [Level](#level). But for the `devDependencies` from your `package.json`
+
+Besides the previously listed allowed values it also allows value `none` in order to completely disable the check.
 
 ### Workspace
 The Slack workspace you use.
