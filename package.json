@@ -11,9 +11,9 @@
     "demo": "ADD_TRAILING_SLASH_TO_API_REQUEST=true npm run build && rm -rf docs/api && rm -rf docs/static && cp favicon.ico docs/ && cp -r ./dist/* docs/ && cp -r ./mocks/api docs/ && mkdir -p docs/{pipelines,catalog,insights,create,configuration,admin,user,login} docs/insights/{counters,rankings,trends} docs/create/{generate,validate} docs/configuration/{credentials,trusted-images} docs/admin/{users,groups,organizations,clients,encrypt} docs/user/{details,preferences} docs/catalog/{services,entities} && find docs/{pipelines,catalog,insights,create,configuration,admin,user,login}/ docs/insights/{counters,rankings,trends}/ docs/create/{generate,validate}/ docs/configuration/{credentials,trusted-images}/ docs/admin/{users,groups,organizations,clients,encrypt}/ docs/user/{details,preferences}/ docs/catalog/{services,entities}/ -maxdepth 0 -exec cp docs/index.html {} \\;"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "^1.2.26",
-    "@fortawesome/free-brands-svg-icons": "^5.13.0",
-    "@fortawesome/free-solid-svg-icons": "^5.12.0",
+    "@fortawesome/fontawesome-svg-core": "^1.2.34",
+    "@fortawesome/free-brands-svg-icons": "^5.15.2",
+    "@fortawesome/free-solid-svg-icons": "^5.15.2",
     "@fortawesome/vue-fontawesome": "^0.1.9",
     "ansi_up": "^3.0.0",
     "apexcharts": "^2.4.2",
